@@ -96,7 +96,7 @@
      (:div :class "container"
            ,@content))
     (:footer :class "bottom"
-             (:a :href "https://github.com/vale981/nougat-web" "Source"))))
+             (:a :href "https://github.com/tu-phys/nougat-web" "Source"))))
 
 (defmacro card ((&key title class (type "fluid")) &body body)
   `(htm
