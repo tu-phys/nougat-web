@@ -1,0 +1,50 @@
+:root {
+    --header-back-color: #f6f1e9;
+    --header-hover-back-color: #f0e6d9;
+    --card-back-color:#f6f1e9;
+    --card-fore-color: var(--header-fore-color);
+    --footer-fore-color: var(--header-fore-color);
+    --footer-back-color: var(--header-back-color);
+    --back-color: #fffbf5;
+}
+
+header > a > img {
+    height: 2.5rem;
+    vertical-align: middle;
+}
+
+.selector {
+    text-align: center;
+}
+
+.container {
+    max-width: 1000px;
+}
+
+.bottom {
+   position: fixed;
+   left: 0;
+   bottom: 0;
+   width: 100%;
+   text-align: center;
+}
+
+.cat-table tbody {
+    overflow: visible !important;
+}
+
+@media(min-width: 800px) {
+    .cat-table td.with-cat {
+        padding: 0;
+    }
+
+    .cat-table td a {
+        display: block;
+        width: 100%;
+        padding: calc(2 * var(--universal-padding));
+    }
+
+    a.download {
+        margin: 0px 10px 0px 0px !important;
+    }
+}

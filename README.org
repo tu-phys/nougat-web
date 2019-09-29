@@ -1,0 +1,18 @@
+* Nougat-Web 
+
+** Usage
++ to start: ~ros run nougat.ros~
++ configuration in =src/config=
+** Installation
++ Run `qlot install` and that should be it.
+** Author
+
++ Valentin Boettcher (hiro@protagon.space)
+
+** Copyright
+
+Copyright (c) 2019 Valentin Boettcher (hiro@protagon.space)
+
+** License
+
+Licensed under the LLGPL License.

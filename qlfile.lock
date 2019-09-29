@@ -1,0 +1,10 @@
+("quicklisp" .
+ (:class qlot.source.ql:source-ql-all
+  :initargs (:distribution "http://beta.quicklisp.org/dist/quicklisp.txt" :%version :latest)
+  :version "2019-08-13"))
+("myway" .
+ (:class qlot.source.git:source-git
+  :initargs (:project-name "myway" :remote-url "git@github.com:vale981/myway.git")
+  :version "git-286230082a11f879c18b93f17ca571c5f676bfb7"
+  :remote-url "git@github.com:vale981/myway.git"
+  :ref "286230082a11f879c18b93f17ca571c5f676bfb7"))
