@@ -55,7 +55,7 @@
     :initform '("mini.css" "main.css")
     :accessor stylesheets)
    (header-links
-    :initform '(("https://physik.protagon.space/" . "Forum"))
+    :initform '(((getf (get-config :discourse) :url) . "Forum"))
     :accessor header-links)))
 
 (setf (who:html-mode) :html5)
@@ -112,13 +112,14 @@
     (:footer :class "bottom"
              (:a :href "https://github.com/tu-phys/nougat-web" "Source"))))
 
-(defmacro card ((&key title class (type "fluid")) &body body)
+(defmacro card ((&key title class (type "fluid") extra-title) &body body)
   `(htm
     (:div :class ,(concatenate 'string "card " type " " class)
           (:div :class "section"
-                (:h3 :class "doc" (str ,title)))
+                (:h3 :style "display: inline;" (str ,title))
+                (htm ,extra-title))
           (:div :class "section"
-                (:p :class "doc" ,@body)))))
+                (:p ,@body)))))
 
 (defmacro table ((&key class caption) headers rows)
   (let ((header (gensym))
@@ -140,6 +141,13 @@
                        (loop for ,el in ,row
                              do
                                 (htm (:td  (str ,el))))))))))))
+
+(defmacro goto-forum-button (link &optional (text "Im Forum ansehen..."))
+  (let ((forum-url (getf (get-config :discourse) :url)))
+    `(htm
+      (:a :class "button"
+          :href #?"${,forum-url}/${,link}"
+          (str ,text)))))
 ;;
 ;; Routes
 ;;
@@ -180,7 +188,8 @@
               :class "row"
               (:div
                :class "col-sm-12"
-               (card (:title "Altklausuren")
+               (card (:title "Altklausuren"
+                      :extra-title (goto-forum-button #?"c/${(getf (get-config :discourse) :exam-category)}"))
                  (:table
                      :class "horizontal striped cat-table cat-table"
                      (:thead (loop for key in keys do
@@ -215,7 +224,9 @@
                 (base (:title #?"Altklausuren - ${name}")
                   (:div :class "row"
                         (:div :class "col-sm-12"
-                              (card (:title name)
+                              (card (:title name
+                                     :extra-title
+                                     (goto-forum-button #?"c/${(getf (get-config :discourse) :exam-category)}/${id}"))
                                 (:table
                                     :class "striped hoverable"
                                     (:thead
