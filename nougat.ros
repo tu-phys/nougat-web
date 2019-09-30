@@ -4,6 +4,7 @@
 exec ros -Q -- $0 "$@"
 |#
 
+(declaim (optimize (speed 3) (space 0) (debug 0)))
 (push #p"./" asdf:*central-registry*)
 (ql:quickload :nougat-web)
 (use-package :nougat-web)
