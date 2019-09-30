@@ -55,7 +55,7 @@
     :initform '("mini.css" "main.css")
     :accessor stylesheets)
    (header-links
-    :initform '(((getf (get-config :discourse) :url) . "Forum"))
+    :initform `((,(getf (get-config :discourse) :url) . "Forum"))
     :accessor header-links)))
 
 (setf (who:html-mode) :html5)
