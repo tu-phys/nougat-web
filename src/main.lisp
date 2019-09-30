@@ -77,6 +77,9 @@
   (handler-case
       (funcall call)
 
+    (dex:http-request-not-found (c)
+      (declare (ignore c))
+      (page-404))
     (dex:http-request-bad-gateway (c)
       (declare (ignore c))
       (discourse-502))
