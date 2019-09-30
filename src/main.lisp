@@ -109,7 +109,7 @@
                    ,@nav)))
      (:div :class "container"
            ,@content))
-    (:footer :class "stick"
+    (:footer :class "sticky"
              (:a :href "https://github.com/tu-phys/nougat-web" "Source"))))
 
 (defmacro card ((&key title class (type "fluid") extra-title) &body body)
