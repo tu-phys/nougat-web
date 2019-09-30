@@ -73,6 +73,20 @@
   `(with-html-output-to-string (output nil :prologue t)
      ,@body))
 
+(defun handle-discourse (call)
+  (handler-case
+      (funcall call)
+
+    (dex:http-request-bad-gateway (c)
+      (declare (ignore c))
+      (discourse-502))
+    (dexador.error:http-request-failed (c)
+      (break))))
+
+(defmacro with-handle-discourse (&rest body)
+  (with-thunk (body)
+    `(handle-discourse ,body)))
+
 (defmacro base ((&key title nav stylesheets header-links) &body content)
   `(htm
     (:html
@@ -87,12 +101,12 @@
                   :href (concatenate 'string "/css/" style)))))
      (:body
       (:header :class "sticky"
-       (:a :href (url-for :home) :class "logo"
-           (:img :src "/images/logo.svg")
-           (loop for link in (concatenate 'list ,header-links (header-links *app*))
-                 collect (htm (:a :class "button" :href (car link)
-                                  (str (cdr link)))))
-           ,@nav)))
+               (:a :href (url-for :home) :class "logo"
+                   (:img :src "/images/logo.svg")
+                   (loop for link in (concatenate 'list ,header-links (header-links *app*))
+                         collect (htm (:a :class "button" :href (car link)
+                                          (str (cdr link)))))
+                   ,@nav)))
      (:div :class "container"
            ,@content))
     (:footer :class "bottom"
@@ -157,38 +171,39 @@
                                 an der TUD.")))))))
 
 (defroute :exams ("/exams")
-  (destructuring-bind (keys table) (get-exam-subjects-table nil)
-    (let ((module-route (get-route-by-name :module)))
-      (with-who
-          (base (:title "Altklausuren")
-            (:div
-             :class "row"
+  (with-handle-discourse
+   (destructuring-bind (keys table) (get-exam-subjects-table nil)
+     (let ((module-route (get-route-by-name :module)))
+       (with-who
+           (base (:title "Altklausuren")
              (:div
-              :class "col-sm-12"
-              (card (:title "Altklausuren")
-                (:table
-                    :class "horizontal striped cat-table cat-table"
-                    (:thead (loop for key in keys do
-                      (htm
-                       (:th (str key)))))
-                    (:tbody
-                     (loop for row in table
-                           do (htm
-                               (:tr (loop
-                                      for el in row
-                                      do (if el
-                                             (htm
-                                              (:td :class "with-cat"
-                                                   :data-label (aget el :category)
-                                                   (:a
-                                                    :href
-                                                    (url-for module-route
-                                                             :id (write-to-string (aget el :id)))
-                                                    :class "tooltip"
-                                                    :aria-label (aget el :name)
-                                                    (str (aget el :slug)))))
-                                             (htm (:td
-                                                   "&nbsp;")))))))))))))))))
+              :class "row"
+              (:div
+               :class "col-sm-12"
+               (card (:title "Altklausuren")
+                 (:table
+                     :class "horizontal striped cat-table cat-table"
+                     (:thead (loop for key in keys do
+                       (htm
+                        (:th (str key)))))
+                     (:tbody
+                      (loop for row in table
+                            do (htm
+                                (:tr (loop
+                                       for el in row
+                                       do (if el
+                                              (htm
+                                               (:td :class "with-cat"
+                                                    :data-label (aget el :category)
+                                                    (:a
+                                                     :href
+                                                     (url-for module-route
+                                                              :id (write-to-string (aget el :id)))
+                                                     :class "tooltip"
+                                                     :aria-label (aget el :name)
+                                                     (str (aget el :slug)))))
+                                              (htm (:td
+                                                    "&nbsp;"))))))))))))))))))
 
 (defroute :module ("/exams/:id" params)
   (abind (id) params
@@ -227,7 +242,7 @@
                                              (str "⇩"))
                                             (dolist (tag tags)
                                               (htm
-                                               (:mark :class "tag" (str tag)))))
+                                               (:mark :class "tag" (string-upcase (str tag))))))
                                            (:td :data-label "Jahr" (str year))
                                            (:td :data-label "Dozent" (str prof))
                                            (:td :data-label "Bemerkungen" (str notes)))))))))))))))
@@ -249,3 +264,8 @@
   "The default 404 page."
   (setf (lack.response:response-status ningle:*response*) 404)
   "Not found!")
+
+(defun discourse-502 ()
+  "To show in case of a discourse 502."
+  (setf (lack.response:response-status ningle:*response*) 502)
+  "Forum offline")

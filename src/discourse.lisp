@@ -44,12 +44,12 @@ result of BODY."
         (stream (gensym)))
     `(let* ((,pathsym ,path))
        (with-cache ,(if key key pathsym)
-           (with-input-from-string
-               (,stream
-                (dex:get (concatenate 'string (getf *config* :url) ,pathsym)
-                         :headers (list (cons "Api-Key" (getf *config* :key))
-                                        (cons "Api-Username" (getf *config* :username)))))
-             (let ((,result-var (json:decode-json ,stream))) ,@body))))))
+         (with-input-from-string
+             (,stream
+              (dex:get (concatenate 'string (getf *config* :url) ,pathsym)
+                       :headers (list (cons "Api-Key" (getf *config* :key))
+                                      (cons "Api-Username" (getf *config* :username)))))
+           (let ((,result-var (json:decode-json ,stream))) ,@body))))))
 
 (defmacro with-cache (key &body body)
   "Loads a parsed result from the cache if possible or caches the
@@ -113,29 +113,24 @@ Takes DESC like ~key: value; key1: value and returns a dictionary."
           parsed)
         parsed)))
 
-(defun get-category-info (id)
-  "Gets detailed info of a category with the ID."
-  (get-cached (#?"/c/${id}/show.json" res)
-    (let* ((res (aget res :category))
-           (desc (aget res :description--text))
-           (extra-info (parse-category-desc desc)))
-      (let ((cat (@ extra-info "Bereich"))) ; TODO: put into config
-        (when cat
-          (push (cons :category cat) res)))
-      res)))
+(defun get-category-info (data)
+  "Gets detailed info of a category with the data."
+  (let* ((desc (aget data :description--text))
+         (extra-info (parse-category-desc desc)))
+    (let ((cat (@ extra-info "Bereich"))) ; TODO: put into config
+      (when cat
+        (push (cons :category cat) data)))
+    data))
 
 (defun get-exam-subjects ()
   "Fetches the Modules which have exams available."
   (with-cache :exam-subjects
-    (let* ((cat-ids
-             (get-cached ("/categories.json" res :exam-cat-ids)
-               (~> (find (getf *config* :exam-category)
-                         (aget res :category--list :categories)
-                         :test #'(lambda (ref item)
-                                   (eq (aget item :id) ref)))
-                   (aget :subcategory--ids))))
-           (subjects (loop for id in cat-ids
-                           for cat = (get-category-info id)
+    (let* ((categories
+             (get-cached (#?"/categories.json?parent_category_id=${(getf *config* :exam-category)}"
+                            res :exam-categories)
+               (aget res :category--list :categories)))
+           (subjects (loop for cat-data in categories
+                           for cat = (get-category-info cat-data)
                            when cat collecting cat))
            (sorted (assort subjects :key #'(lambda (el) (aget el :category)) :test #'string=))
            (sorted-hash (make-hash-table :test 'equal)))
@@ -205,7 +200,7 @@ download link and the rest is parsed as notes. Returns an EXAM."
                                          :body body
                                          :id id
                                          :reason "Link not found."))))))
-
+(-> get-exams (fixnum) proper-list)
 (defun get-exams (subject-id)
   "Gets and parses all the exams in a category scipping invalid ones."
   (get-cached (#?"/c/${(getf *config* :exam-category)}/${subject-id}.json"
@@ -224,7 +219,7 @@ download link and the rest is parsed as notes. Returns an EXAM."
                                                      (slot-value error 'id))
                                           nil))
                           :when exam :collecting exam)))
-        (stable-sort exams #'> :key #'ex-year)))))
+        (sort exams #'> :key #'ex-year)))))
 
 (defun test ()
   (get-cached ("/categories.json" res :exam-cat-ids)
