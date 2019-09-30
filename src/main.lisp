@@ -228,7 +228,7 @@
                                      :extra-title
                                      (goto-forum-button #?"c/${(getf (get-config :discourse) :exam-category)}/${id}"))
                                 (:table
-                                    :class "striped hoverable"
+                                    :class "striped hoverable exams"
                                     (:thead
                                      (:th)
                                      (:th "Jahr")
@@ -253,7 +253,7 @@
                                              (str "⇩"))
                                             (dolist (tag tags)
                                               (htm
-                                               (:mark :class "tag exam-tag" (str (string-upcase tag))))))
+                                               (:mark :class "tag" (str (string-upcase tag))))))
                                            (:td :data-label "Jahr" (str year))
                                            (:td :data-label "Dozent" (str prof))
                                            (:td :data-label "Bemerkungen" (str notes)))))))))))))))

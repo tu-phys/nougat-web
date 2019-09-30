@@ -41,7 +41,11 @@ header > a > img {
     }
 }
 
-.exam-tag {
+.exams tag {
     font-family: monospace;
     font-size: 10px;
+}
+
+table.exams {
+    max-height: none;
 }
