@@ -113,14 +113,20 @@ Takes DESC like ~key: value; key1: value and returns a dictionary."
           parsed)
         parsed)))
 
-(defun get-category-info (data)
-  "Gets detailed info of a category with the data."
-  (let* ((desc (aget data :description--text))
-         (extra-info (parse-category-desc desc)))
-    (let ((cat (@ extra-info "Bereich"))) ; TODO: put into config
-      (when cat
-        (push (cons :category cat) data)))
-    data))
+(defgeneric get-category-info (id)
+  (:method ((id fixnum))
+    (get-category-info (write-to-string id)))
+  (:method ((id string))
+    (get-cached (#?"/c/${id}/show.json" res)
+      (get-category-info (aget res :category))))
+  (:method (data)
+    (let* ((desc (aget data :description--text))
+           (extra-info (parse-category-desc desc)))
+      (let ((cat (@ extra-info "Bereich"))) ; TODO: put into config
+        (when cat
+          (push (cons :category cat) data)))
+      data))
+  (:documentation "Gets detailed info of a category with the data."))
 
 (defun get-exam-subjects ()
   "Fetches the Modules which have exams available."
@@ -200,7 +206,8 @@ download link and the rest is parsed as notes. Returns an EXAM."
                                          :body body
                                          :id id
                                          :reason "Link not found."))))))
-(-> get-exams (fixnum) proper-list)
+
+(-> get-exams ((or string fixnum)) proper-list)
 (defun get-exams (subject-id)
   "Gets and parses all the exams in a category scipping invalid ones."
   (get-cached (#?"/c/${(getf *config* :exam-category)}/${subject-id}.json"
