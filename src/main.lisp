@@ -77,6 +77,9 @@
   (handler-case
       (funcall call)
 
+    (dex:http-request-not-found (c)
+      (declare (ignore c))
+      (page-404))
     (dex:http-request-bad-gateway (c)
       (declare (ignore c))
       (discourse-502))
@@ -109,7 +112,7 @@
                    ,@nav)))
      (:div :class "container"
            ,@content))
-    (:footer :class "bottom"
+    (:footer :class "sticky"
              (:a :href "https://github.com/tu-phys/nougat-web" "Source"))))
 
 (defmacro card ((&key title class (type "fluid") extra-title) &body body)
@@ -228,7 +231,7 @@
                                      :extra-title
                                      (goto-forum-button #?"c/${(getf (get-config :discourse) :exam-category)}/${id}"))
                                 (:table
-                                    :class "striped hoverable"
+                                    :class "striped hoverable exams"
                                     (:thead
                                      (:th)
                                      (:th "Jahr")
@@ -253,7 +256,7 @@
                                              (str "⇩"))
                                             (dolist (tag tags)
                                               (htm
-                                               (:mark :class "tag exam-tag" (str (string-upcase tag))))))
+                                               (:mark :class "tag" (str (string-upcase tag))))))
                                            (:td :data-label "Jahr" (str year))
                                            (:td :data-label "Dozent" (str prof))
                                            (:td :data-label "Bemerkungen" (str notes)))))))))))))))
