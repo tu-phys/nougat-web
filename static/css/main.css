@@ -21,14 +21,6 @@ header > a > img {
     max-width: 1000px;
 }
 
-.bottom {
-   position: fixed;
-   left: 0;
-   bottom: 0;
-   width: 100%;
-   text-align: center;
-}
-
 .cat-table tbody {
     overflow: visible !important;
 }
