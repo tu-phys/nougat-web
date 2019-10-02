@@ -8,7 +8,7 @@
 
 (defconfig :common
     `(:application-root ,(asdf:component-pathname (asdf:find-system :nougat-web))
-      :clack-config (:port 8080)
+      :clack-config (:port 8080 :server :woo)
       :static-path "static/"
       :markdown-path "md/"
       :md-files (:welcome "welcome.md")

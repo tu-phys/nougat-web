@@ -43,6 +43,8 @@
       (3bmd:parse-and-print-to-stream path s))))
 
 
+;; TODO: Rate Limiter
+
 ;;
 ;; Setup
 ;;
@@ -83,8 +85,12 @@
     (dex:http-request-bad-gateway (c)
       (declare (ignore c))
       (discourse-502))
-    (dexador.error:http-request-failed (c)
-      (break))))
+    (dexador.error:http-request-forbidden (c)
+      (discourse-403 (~> (dexador.error:response-body c)
+                         (json:decode-json-from-string)
+                         (aget :errors))))
+    (error (c)
+      (discourse-500 (format nil "~A" c)))))
 
 (defmacro with-handle-discourse (&rest body)
   (with-thunk (body)
@@ -219,7 +225,7 @@
 
 (defroute :module ("/exams/:id" params)
   (abind (id) params
-    (handler-case
+    (with-handle-discourse
         (let ((info (get-category-info id))
               (exams (get-exams id)))
           (abind (name) info
@@ -259,10 +265,7 @@
                                                (:mark :class "tag" (str (string-upcase tag))))))
                                            (:td :data-label "Jahr" (str year))
                                            (:td :data-label "Dozent" (str prof))
-                                           (:td :data-label "Bemerkungen" (str notes)))))))))))))))
-      (dexador.error:http-request-forbidden (c)
-        (log:debug c)
-        (page-404)))))
+                                           (:td :data-label "Bemerkungen" (str notes))))))))))))))))))
 
 (defun get-route-by-name (name)
   (myway:find-route-by-name (ningle/app::mapper *app*)
@@ -274,6 +277,10 @@
   (:method ((route myway:route) &rest params)
     (myway.route:url-for route params)))
 
+;;
+;; Error Pages
+;;
+
 (defun page-404 ()
   "The default 404 page."
   (setf (lack.response:response-status ningle:*response*) 404)
@@ -282,4 +289,16 @@
 (defun discourse-502 ()
   "To show in case of a discourse 502."
   (setf (lack.response:response-status ningle:*response*) 502)
-  "Forum offline")
+  "Forum offline.")
+
+(-> discourse-403 (string) string)
+(defun discourse-403 (message)
+  "To show in case of a 403 from discourse."
+  (setf (lack.response:response-status ningle:*response*) 502)
+  #?"Discourse Error: ${message}")
+
+(-> discourse-500 (string) string)
+(defun discourse-500 (message)
+  "To show in case of a 403 from discourse."
+  (setf (lack.response:response-status ningle:*response*) 502)
+  #?"Unhandled error when calling discourse: ${message}")
