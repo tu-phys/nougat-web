@@ -86,9 +86,10 @@
       (declare (ignore c))
       (discourse-502))
     (dexador.error:http-request-forbidden (c)
-      (discourse-403 (~> (dexador.error:response-body c)
-                         (json:decode-json-from-string)
-                         (aget :errors))))
+      (discourse-403 (format nil "~A"
+                             (~> (dexador.error:response-body c)
+                                 (json:decode-json-from-string)
+                                 (aget :errors)))))
     (error (c)
       (discourse-500 (format nil "~A" c)))))
 
