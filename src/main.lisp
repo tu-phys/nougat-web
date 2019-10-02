@@ -57,7 +57,8 @@
     :initform '("mini.css" "main.css")
     :accessor stylesheets)
    (header-links
-    :initform `((,(getf (get-config :discourse) :url) . "Forum"))
+    :initform `((,(getf (get-config :discourse) :url) . "Forum")
+                ("https://github.com/tu-phys/nougat-web" . "Source"))
     :accessor header-links)))
 
 (setf (who:html-mode) :html5)
@@ -110,17 +111,16 @@
                   :rel "stylesheet"
                   :href (concatenate 'string "/css/" style)))))
      (:body
-      (:header :class "sticky"
-               (:a :href (url-for :home) :class "logo"
-                   (:img :src "/images/logo.svg")
-                   (loop for link in (concatenate 'list ,header-links (header-links *app*))
-                         collect (htm (:a :class "button" :href (car link)
-                                          (str (cdr link)))))
-                   ,@nav)))
+      (:header :class "sticky row"
+               (:div :class "col-sm-12 col-md-12 col-lg-10 col-lg-offset-1"
+                     (:a :href (url-for :home) :class "logo"
+                         (:img :src "/images/logo.svg"))
+                     (loop for link in (concatenate 'list ,header-links (header-links *app*))
+                           collect (htm (:a :class "button" :href (car link)
+                                            (str (cdr link)))))
+                     ,@nav)))
      (:div :class "container"
-           ,@content))
-    (:footer :class "sticky"
-             (:a :href "https://github.com/tu-phys/nougat-web" "Source"))))
+           ,@content))))
 
 (defmacro card ((&key title class (type "fluid") extra-title) &body body)
   `(htm

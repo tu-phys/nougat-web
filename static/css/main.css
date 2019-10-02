@@ -8,7 +8,7 @@
     --back-color: #fffbf5;
 }
 
-header > a > img {
+header img {
     height: 2.5rem;
     vertical-align: middle;
 }
