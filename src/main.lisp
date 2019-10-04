@@ -244,10 +244,15 @@
                                            (:td :data-label "Dozent" (str prof))
                                            (:td :data-label "Bemerkungen" (str notes))))))))))))))))))
 
-(defroute :discourse-webhook ("/drop-caches" params :method :post)
-  (declare (ignore params))
+(defroute :discourse-webhook ("/drop-caches/:token" params :method :post)
   (log:info (lack.request:request-body-parameters ningle:*request*))
-  "ok")
+  (if (string= (aget params :token) (get-config :cache-token))
+      (let* ((body (lack.request:request-body-parameters ningle:*request*))
+             (headers (lack.request:request-headers ningle:*request*))
+             (event (@ headers "X-Discourse-Event")))
+        (drop-cache event body)
+        "ok")
+      (page-403)))
 
 (defun get-route-by-name (name)
   (myway:find-route-by-name (ningle/app::mapper *app*)
@@ -267,6 +272,11 @@
   "The default 404 page."
   (setf (lack.response:response-status ningle:*response*) 404)
   "Not found!")
+
+(defun page-403 ()
+  "The default 404 page."
+  (setf (lack.response:response-status ningle:*response*) 403)
+  "Access Denied!")
 
 (defun discourse-502 ()
   "To show in case of a discourse 502."

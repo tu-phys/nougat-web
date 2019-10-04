@@ -8,6 +8,7 @@
    :get-exam-subjects-table
    :get-exams
    :get-category-info
+   :drop-cache
 
    :exam
    :exam-year
@@ -33,9 +34,26 @@
 ;; Cache Helpers
 ;;
 
-(defun invalidate-cache ()
+(defun drop-cache (&optional event body)
   "Empties the cache."
-  (setf *cache* (make-hash-table :test 'equal)))
+  (switch (event :test #'(lambda (item clauses)
+                           (member item clauses :test #'string=)))
+    ('("post_created" "post_edited" "post_destroyed")
+      (let* ((post (agets body "post"))
+             (id (agets post "topic_id")))
+        (remhash (topic-url id) *cache*)
+
+        (handler-case
+            (let* ((topic (get-topic id))
+                   (cat-id (aget topic :category--id)))
+              (remhash (exam-list-url cat-id) *cache*))
+          (error (e)
+            (declare (ignore e))))))
+    ('("topic_created" "topic_destroyed")
+      nil)
+    (t
+     (setf *cache* (make-hash-table :test 'equal))))
+  *cache*)
 
 (defmacro get-cached ((path result-var &optional key) &body body)
   "Loads a parsed result from the cache if possible or caches the
@@ -175,7 +193,8 @@ Takes DESC like ~key: value; key1: value and returns a dictionary."
   (prof "" :type string)
   (download "" :type string)
   (notes "" :type string)
-  (tags nil :type proper-sequence))
+  (tags nil :type proper-sequence)
+  (subject-id "" :type fixnum))
 
 (defun parse-exam-title (title)
   "Parses the exam TITLE looking like `year: professor` into a list of
@@ -186,13 +205,19 @@ shape (YEAR TITLE)."
         (error 'malformed-exam-error :reason "Invalid Title"
                                      :title title))))
 
-(defun get-exam (title id tags)
+(defun topic-url (id)
+  #?"/t/${id}.json")
+
+(defun get-topic (id)
+  (get-cached ((topic-url id) res)
+    res))
+
+(defun get-exam (title id tags subject-id)
   "Gets and parses an exam from the discourse API. The title is parsed
 with PARSE-EXAM-TITLE. The first link in the body is taken to be the
 download link and the rest is parsed as notes. Returns an EXAM."
   (destructuring-bind (year prof) (parse-exam-title title)
-    (let* ((first-post (first (aget (get-cached (#?"/t/${id}.json" res)
-                                      res) :post--stream :posts)))
+    (let* ((first-post (first (aget (get-topic id) :post--stream :posts)))
            (body (aget first-post :cooked)))
       (multiple-value-bind (begin end link-begin link-end)
           (ppcre:scan "href=\"(.*)\">.*(?:$|<br>|</p>)" body)
@@ -200,18 +225,20 @@ download link and the rest is parsed as notes. Returns an EXAM."
             (let ((link (subseq body (first-elt link-begin) (first-elt link-end)))
                   (notes (subseq body end)))
               (make-exam :year year :prof prof :download (concatenate 'string (getf *config* :url) link)
-
-                         :notes notes :tags tags))
+                         :notes notes :tags tags :subject-id (parse-integer subject-id)))
             (error 'malformed-exam-error :title title
                                          :body body
                                          :id id
                                          :reason "Link not found."))))))
 
+(defun exam-list-url (id)
+  #?"/c/${(getf *config* :exam-category)}/${id}.json")
+
 (-> get-exams ((or string fixnum)) proper-list)
 (defun get-exams (subject-id)
   "Gets and parses all the exams in a category scipping invalid ones."
-  (get-cached (#?"/c/${(getf *config* :exam-category)}/${subject-id}.json"
-                 res #?"exams-${subject-id}")
+  (get-cached ((exam-list-url subject-id)
+                 res)
     (flet ((ex-year (exam)
              (~> (ppcre:split "/" (exam-year exam))
                  (elt 0)
@@ -219,7 +246,8 @@ download link and the rest is parsed as notes. Returns an EXAM."
 
       (let* ((topics (aget res :topic--list :topics))
              (exams (loop :for topic :in topics
-                          :for exam = (handler-case (get-exam (aget topic :title) (aget topic :id) (aget topic :tags))
+                          :for exam = (handler-case (get-exam (aget topic :title) (aget topic :id) (aget topic :tags)
+                                                              subject-id)
                                         (malformed-exam-error (error)
                                           (log:debug error (slot-value error 'reason)
                                                      (slot-value error 'title)
@@ -227,7 +255,3 @@ download link and the rest is parsed as notes. Returns an EXAM."
                                           nil))
                           :when exam :collecting exam)))
         (sort exams #'> :key #'ex-year)))))
-
-(defun test ()
-  (get-cached ("/categories.json" res :exam-cat-ids)
-    res))
