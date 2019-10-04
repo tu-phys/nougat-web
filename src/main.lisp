@@ -245,11 +245,11 @@
                                            (:td :data-label "Bemerkungen" (str notes))))))))))))))))))
 
 (defroute :discourse-webhook ("/drop-caches/:token" params :method :post)
-  (log:info (lack.request:request-body-parameters ningle:*request*))
   (if (string= (aget params :token) (get-config :cache-token))
       (let* ((body (lack.request:request-body-parameters ningle:*request*))
              (headers (lack.request:request-headers ningle:*request*))
              (event (@ headers "X-Discourse-Event")))
+        (log:info "Webhook event: ~A" event)
         (drop-cache event body)
         "ok")
       (page-403)))
