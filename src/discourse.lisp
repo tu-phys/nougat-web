@@ -78,7 +78,7 @@
           (remhash :exam-subjects *cache*)
           (remhash :exam-subjects-table *cache*)
           (remhash (category-details-url id) *cache*)
-          (when (string= event "category_updated")
+          (when (string= event "category_created")
               (remhash (exam-list-url id) *cache*)))))
     ('("never")
       (log:info "Full cache drop.")
