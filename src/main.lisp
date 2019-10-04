@@ -246,7 +246,7 @@
 
 (defroute :discourse-webhook ("/drop-caches" params :method :post)
   (declare (ignore params))
-  (print (lack.request:request-body-parameters ningle:*request*))
+  (log:info (lack.request:request-body-parameters ningle:*request*))
   "ok")
 
 (defun get-route-by-name (name)
