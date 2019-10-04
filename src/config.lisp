@@ -24,7 +24,7 @@
 
 (defconfig |production|
     `(:log-level :info
-      :clack-config (:port 8081)
+      :clack-config (:port 8081 :server :woo)
       :cache-timeout ,(* 60 60)))
 
 (defun app-config ()
