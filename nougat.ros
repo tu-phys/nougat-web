@@ -13,7 +13,7 @@ exec ros -Q -- $0 "$@"
   (declare (ignore argv))
   (start)
   (handler-case (bt:join-thread (find-if (lambda (th)
-                                           (search "woo" (bt:thread-name th)))
+                                           (search "hunchentoot" (bt:thread-name th)))
                                          (bt:all-threads)))
     ;; Catch a user's C-c
     (#+sbcl sb-sys:interactive-interrupt
