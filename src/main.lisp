@@ -250,6 +250,7 @@
              (headers (lack.request:request-headers ningle:*request*))
              (event (@ headers "X-Discourse-Event")))
         (log:info "Webhook event: ~A" event)
+        (log:info "Headers" headers)
         (drop-cache event body)
         "ok")
       (page-403)))
