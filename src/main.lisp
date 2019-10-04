@@ -18,6 +18,13 @@
 ;; Setup
 ;;
 
+(defun from-markdown-file (id)
+  (let ((path (fad:merge-pathnames-as-file *static-directory*
+                                           (get-config :markdown-path)
+                                           (getf (get-config :md-files) id))))
+    (with-output-to-string (s)
+      (3bmd:parse-and-print-to-stream path s))))
+
 (defclass nougat (ningle:app)
   ((welcome-text
     :initform (from-markdown-file :welcome)
@@ -31,7 +38,7 @@
     :accessor header-links)))
 
 (setf (who:html-mode) :html5)
-(log:config (getf (app-config) :log-level))
+(log:config (get-config :log-level))
 (defvar *static-directory* (merge-pathnames-as-directory
                             (get-config :application-root)
                             (get-config :static-path)))
@@ -239,7 +246,8 @@
 
 (defroute :discourse-webhook ("/drop-caches" params :method :post)
   (declare (ignore params))
-  (break))
+  (print (lack.request:request-body-parameters ningle:*request*))
+  "ok")
 
 (defun get-route-by-name (name)
   (myway:find-route-by-name (ningle/app::mapper *app*)
@@ -293,17 +301,13 @@
                              path
                              nil))
                  :root *static-directory*)
+                (:backtrace)
                 *app*) (getf (app-config) :clack-config))))
 
 (defun stop ()
   (clack:stop *handle*))
 
-(defun from-markdown-file (id)
-  (let ((path (fad:merge-pathnames-as-file *static-directory*
-                                           (get-config :markdown-path)
-                                           (getf (get-config :md-files) id))))
-    (with-output-to-string (s)
-      (3bmd:parse-and-print-to-stream path s))))
+
 
 
 ;; TODO: Rate Limiter
