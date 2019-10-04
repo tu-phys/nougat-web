@@ -34,16 +34,33 @@
 ;; Cache Helpers
 ;;
 
+(defmacro %aget (list test &rest keys)
+  (if (car keys)
+      `(cdr (assoc ,(car keys) (%aget ,list ,test ,@(cdr keys)) :test ,test))
+      list))
+
+(defmacro agett (list test &rest keys)
+  `(%aget ,list ,test ,@(nreverse keys)))
+
+(defmacro aget (list &rest keys)
+  `(%aget ,list 'eq ,@(nreverse keys)))
+
+(defmacro agets (list &rest keys)
+  `(%aget ,list #'string= ,@(nreverse keys)))
+
+(defmacro abind ((&rest keys) list &body body)
+  (let ((list-sym (gensym)))
+    `(let ((,list-sym ,list))
+      (let (,@(loop for key in keys collecting `(,key (aget ,list-sym ,(alexandria:make-keyword key)))))
+        ,@body))))
+
 (defun drop-cache (&optional event body)
   "Empties the cache."
   (switch (event :test #'(lambda (item clauses)
                            (member item clauses :test #'string=)))
     ('("post_created" "post_edited" "post_destroyed")
-      (let* ((post
-              (cdr (assoc "post" body :test #'string=)))
-             (id
-              (cdr
-               (assoc "topic_id" post :test #'string=))))
+      (let* ((post (agets body "post"))
+             (id (agets post "topic_id")))
         (remhash (topic-url id) *cache*)
 
         (handler-case
@@ -90,25 +107,6 @@ result of BODY."
                      (get-universal-time)
                      (progn ,@body)))))))))
 
-(defmacro %aget (list test &rest keys)
-  (if (car keys)
-      `(cdr (assoc ,(car keys) (%aget ,list ,test ,@(cdr keys)) :test ,test))
-      list))
-
-(defmacro agett (list test &rest keys)
-  `(%aget ,list ,test ,@(nreverse keys)))
-
-(defmacro aget (list &rest keys)
-  `(%aget ,list 'eq ,@(nreverse keys)))
-
-(defmacro agets (list &rest keys)
-  `(%aget ,list #'string= ,@(nreverse keys)))
-
-(defmacro abind ((&rest keys) list &body body)
-  (let ((list-sym (gensym)))
-    `(let ((,list-sym ,list))
-      (let (,@(loop for key in keys collecting `(,key (aget ,list-sym ,(alexandria:make-keyword key)))))
-        ,@body))))
 ;;
 ;; API
 ;;
