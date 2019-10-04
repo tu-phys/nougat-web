@@ -15,37 +15,6 @@
 (named-readtables:in-readtable :interpol-syntax)
 
 ;;
-;; Helpers
-;;
-
-(defvar *handle*)
-(defun start ()
-  (setf *handle*
-        (apply #'clack:clackup
-               (lack:builder
-                (:static
-                 :path (lambda (path)
-                         (if (ppcre:scan
-                              "^(?:/images/|/css/|/js/|/robot\\.txt$|/favicon\\.ico$)" path)
-                             path
-                             nil))
-                 :root *static-directory*)
-                *app*) (getf (app-config) :clack-config))))
-
-(defun stop ()
-  (clack:stop *handle*))
-
-(defun from-markdown-file (id)
-  (let ((path (fad:merge-pathnames-as-file *static-directory*
-                                           (get-config :markdown-path)
-                                           (getf (get-config :md-files) id))))
-    (with-output-to-string (s)
-      (3bmd:parse-and-print-to-stream path s))))
-
-
-;; TODO: Rate Limiter
-
-;;
 ;; Setup
 ;;
 
@@ -166,8 +135,8 @@
   (let ((param (gentemp)))
     `(setf (ningle:route *app* ,path ,@nimble-args :identifier ',name)
            #'(lambda (,(if param-sym param-sym param))
-               ,(when (not param-sym)
-                  `(declare (ignore ,param)))
+               ,@(when (not param-sym)
+                   `((declare (ignore ,param))))
                ,@body))))
 
 (defroute :home ("/")
@@ -268,6 +237,10 @@
                                            (:td :data-label "Dozent" (str prof))
                                            (:td :data-label "Bemerkungen" (str notes))))))))))))))))))
 
+(defroute :discourse-webhook ("/drop-caches" params :method :post)
+  (declare (ignore params))
+  (break))
+
 (defun get-route-by-name (name)
   (myway:find-route-by-name (ningle/app::mapper *app*)
                             name))
@@ -303,3 +276,34 @@
   "To show in case of a 403 from discourse."
   (setf (lack.response:response-status ningle:*response*) 502)
   #?"Unhandled error when calling discourse: ${message}")
+
+;;
+;; Helpers
+;;
+
+(defvar *handle*)
+(defun start ()
+  (setf *handle*
+        (apply #'clack:clackup
+               (lack:builder
+                (:static
+                 :path (lambda (path)
+                         (if (ppcre:scan
+                              "^(?:/images/|/css/|/js/|/robot\\.txt$|/favicon\\.ico$)" path)
+                             path
+                             nil))
+                 :root *static-directory*)
+                *app*) (getf (app-config) :clack-config))))
+
+(defun stop ()
+  (clack:stop *handle*))
+
+(defun from-markdown-file (id)
+  (let ((path (fad:merge-pathnames-as-file *static-directory*
+                                           (get-config :markdown-path)
+                                           (getf (get-config :md-files) id))))
+    (with-output-to-string (s)
+      (3bmd:parse-and-print-to-stream path s))))
+
+
+;; TODO: Rate Limiter
