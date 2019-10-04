@@ -39,6 +39,7 @@
   (switch (event :test #'(lambda (item clauses)
                            (member item clauses :test #'string=)))
     ('("post_created" "post_edited" "post_destroyed")
+      (log:info body)
       (let* ((post (agets body "post"))
              (id (agets post "topic_id")))
         (remhash (topic-url id) *cache*)
