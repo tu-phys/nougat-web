@@ -90,7 +90,7 @@
                   :href (concatenate 'string "/css/" style)))))
      (:body
       (:header :class "sticky row"
-               (:div :class "col-sm-12 col-md-12 col-lg-10 col-lg-offset-1"
+               (:div :class "col-sm-12 col-md-12 col-lg-10 col-lg-offset-2"
                      (:a :href (url-for :home) :class "logo"
                          (:img :src "/images/logo.svg"))
                      (loop for link in (concatenate 'list ,header-links (header-links *app*))
