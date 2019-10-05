@@ -13,6 +13,7 @@
       :markdown-path "md/"
       :cache-token "test"
       :md-files (:welcome "welcome.md")
+      :page-url "https://klausurnoug.at"
       :discourse (:url "https://physik.protagon.space"
                   :key "cd55b5a3b1ef98ba9baf3a57daaa40872e48f7a3ee769b497882ac4e39caf0f6"
                   :username "hiro98"
