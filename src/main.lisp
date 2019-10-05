@@ -308,7 +308,7 @@
                 (:static
                  :path (lambda (path)
                          (if (ppcre:scan
-                              "^(?:/images/|/css/|/js/|/robot\\.txt$|/favicon\\.ico$)" path)
+                              "^(?:/images/|/css/|/js/|/robots\\.txt$|/favicon\\.ico$)" path)
                              path
                              nil))
                  :root *static-directory*)
