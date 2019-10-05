@@ -80,7 +80,8 @@
      (:head
       (:meta :charset "utf-8")
       (:meta :name "viewport" :content "width=device-width, initial-scale=1.0")
-      (:title (str #?"Klausurnougat - ${,title}"))
+      (:meta :name "robots" :content "index, follow")
+      (:title (str #?"Klausur Nougat - ${,title}"))
       (loop for style in (concatenate 'list ,stylesheets (stylesheets *app*))
             collect
             (htm (:link
