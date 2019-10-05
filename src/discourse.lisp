@@ -18,7 +18,9 @@
    :exam-tags
 
    :aget
-   :abind))
+   :abind
+   :id
+   :cat-id))
 
 (in-package :nougat-web.discourse)
 (named-readtables:in-readtable :interpol-syntax)
@@ -26,7 +28,7 @@
 (defvar *cache* (make-hash-table :test 'equal))
 (defvar *cache-timeout* (get-config :cache-timeout))
 (defvar *config* (get-config :discourse))
-
+(defvar *no-cache* nil)
 
 ;; TODO: genral savety and sanity checking
 
@@ -56,38 +58,38 @@
 
 (defun drop-cache (&optional event body)
   "Empties the cache."
-  (switch (event :test #'(lambda (item clauses)
-                           (member item clauses :test #'string=)))
-    ('("post_created" "post_edited" "post_destroyed")
-      (let* ((post (agets body "post"))
-             (id (agets post "topic_id")))
-        (remhash (topic-url id) *cache*)
-
-        (handler-case
-            (let* ((topic (get-topic id))
-                   (cat-id (aget topic :category--id)))
-              (remhash (exam-list-url cat-id) *cache*))
-          (error (e)
-            (declare (ignore e))))))
-    ('("category_created" "category_destroyed" "category_updated")
-      (let* ((category (agets body "category"))
-             (id (agets category "id"))
-             (parent-id (agets category "parent_category_id")))
-        (when (= parent-id (getf (get-config :discourse) :exam-category))
-          (remhash :exam-categories *cache*)
-          (remhash :exam-subjects *cache*)
-          (remhash :exam-subjects-table *cache*)
-          (remhash (category-details-url id) *cache*)
-          (get-category-info id)
-          (get-exam-subjects)
-          (when (string= event "category_created")
-            (remhash (exam-list-url id) *cache*)
-            (get-exams id)))))
-    ('("never")
-      (log:info "Full cache drop.")
-      (setf *cache* (make-hash-table :test 'equal)))
-    (t
-     nil))
+  (let ((*no-cache* t))
+    (switch (event :test #'(lambda (item clauses)
+                             (member item clauses :test #'string=)))
+      ('("post_created" "post_edited" "post_destroyed")
+        (let* ((post (agets body "post"))
+               (id (agets post "topic_id")))
+          (handler-case
+              (let* ((topic (let ((*no-cache* nil)) (get-topic id)))
+                     (cat-id (aget topic :category--id))
+                     (cat (get-category-info cat-id))
+                     (parent-id (aget cat :parent--category--id)))
+                (when (= parent-id (getf (get-config :discourse) :exam-category))
+                  (get-topic id)
+                  (remhash (exam-list-url cat-id) *cache*)
+                  (let ((*no-cache* nil)) (get-exams cat-id))))
+            (error (e)
+              (declare (ignore e))))))
+      ('("category_created" "category_destroyed" "category_updated")
+        (let* ((category (agets body "category"))
+               (id (agets category "id"))
+               (parent-id (agets category "parent_category_id")))
+          (when (= parent-id (getf (get-config :discourse) :exam-category))
+            (get-category-info id)
+            (get-exam-subjects)
+            (when (string= event "category_created")
+              (remhash (exam-list-url id) *cache*)
+              (get-exams id)))))
+      ('("full_drop")                       ; park that option for now
+        (log:info "Full cache drop.")
+        (setf *cache* (make-hash-table :test 'equal)))
+      (t
+       nil)))
   *cache*)
 
 (defmacro get-cached ((path result-var &optional key) &body body)
@@ -109,12 +111,12 @@ result of BODY."
 result of BODY."
   (let ((cached (gensym)))
     `(let ((,cached (gethash ,key *cache*)))
-       (if (and ,cached (< (get-universal-time) (+ *cache-timeout* (car ,cached))))
+       (if (and (not *no-cache*) ,cached (< (get-universal-time) (+ *cache-timeout* (car ,cached))))
            (progn
-             (log:debug "Serving cached: ~A" ,key)
+             (log:debug "Loading cached: ~A" ,key)
              (cdr ,cached))
            (progn
-             (log:debug "Serving uncached: ~A" ,key)
+             (log:debug "Loading uncached: ~A" ,key)
              (cdr
               (setf (gethash ,key *cache*)
                     (cons
@@ -244,7 +246,9 @@ download link and the rest is parsed as notes. Returns an EXAM."
             (let ((link (subseq body (first-elt link-begin) (first-elt link-end)))
                   (notes (subseq body end)))
               (make-exam :year year :prof prof :download (concatenate 'string (getf *config* :url) link)
-                         :notes notes :tags tags :subject-id (parse-integer subject-id)))
+                         :notes notes :tags tags :subject-id (if (stringp subject-id)
+                                                                 (parse-integer subject-id)
+                                                                 subject-id)))
             (error 'malformed-exam-error :title title
                                          :body body
                                          :id id
@@ -255,7 +259,7 @@ download link and the rest is parsed as notes. Returns an EXAM."
 
 (-> get-exams ((or string fixnum)) proper-list)
 (defun get-exams (subject-id)
-  "Gets and parses all the exams in a category scipping invalid ones."
+  "Gets and parses all the exams in a category skipping invalid ones."
   (get-cached ((exam-list-url subject-id)
                  res)
     (flet ((ex-year (exam)
