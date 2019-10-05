@@ -26,7 +26,7 @@
 (defconfig |production|
     `(:log-level :info
       :clack-config (:port 8081)
-      :cache-timeout ,(* 60 60)))
+      :cache-timeout ,sb-ext:double-float-positive-infinity))
 
 (defun app-config ()
   (envy:config #.(package-name *package*)))
