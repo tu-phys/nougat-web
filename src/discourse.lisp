@@ -69,7 +69,7 @@
                      (cat-id (aget topic :category--id))
                      (cat (get-category-info cat-id))
                      (parent-id (aget cat :parent--category--id)))
-                (when (= parent-id (getf (get-config :discourse) :exam-category))
+                (when (and parent-id (= parent-id (getf (get-config :discourse) :exam-category)))
                   (get-topic id)
                   (remhash (exam-list-url cat-id) *cache*)
                   (let ((*no-cache* nil)) (get-exams cat-id))))
@@ -79,7 +79,8 @@
         (let* ((category (agets body "category"))
                (id (agets category "id"))
                (parent-id (agets category "parent_category_id")))
-          (when (= parent-id (getf (get-config :discourse) :exam-category))
+          (when (and parent-id
+                   (= parent-id (getf (get-config :discourse) :exam-category)))
             (get-category-info id)
             (get-exam-subjects)
             (when (string= event "category_created")
