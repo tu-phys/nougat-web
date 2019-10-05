@@ -79,6 +79,7 @@
     (:html
      (:head
       (:meta :charset "utf-8")
+      (:meta :name "viewport" :content "width=device-width, initial-scale=1.0")
       (:title (str #?"Klausurnougat - ${,title}"))
       (loop for style in (concatenate 'list ,stylesheets (stylesheets *app*))
             collect
