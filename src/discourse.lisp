@@ -1,5 +1,6 @@
 (defpackage :nougat-web.discourse
   (:use :cl :serapeum :alexandria)
+  (:nicknames :dc)
   (:import-from :nougat-web.config
    :app-config
                 :get-config)
@@ -8,6 +9,10 @@
    :get-exam-subjects-table
    :get-exams
    :get-category-info
+
+   :get-lab-courses
+   :get-lab-course-table
+
    :drop-cache
 
    :exam
@@ -16,6 +21,11 @@
    :exam-notes
    :exam-download
    :exam-tags
+
+   :lab-course-rump
+   :name
+   :slug
+   :category
 
    :aget
    :abind
@@ -69,23 +79,33 @@
                      (cat-id (aget topic :category--id))
                      (cat (get-category-info cat-id))
                      (parent-id (aget cat :parent--category--id)))
-                (when (and parent-id (= parent-id (getf (get-config :discourse) :exam-category)))
-                  (get-topic id)
-                  (remhash (exam-list-url cat-id) *cache*)
-                  (let ((*no-cache* nil)) (get-exams cat-id))))
+                (when parent-id
+                  (switch (parent-id)
+                    ((getf (get-config :discourse) :exam-category)
+                     (get-topic id)
+                     (remhash (exam-list-url cat-id) *cache*)
+                     (let ((*no-cache* nil)) (get-exams cat-id)))
+                    ((getf (get-config :discourse) :lab-course-category)
+                     (get-lab-course-table nil)))))
             (error (e)
               (declare (ignore e))))))
       ('("category_created" "category_destroyed" "category_updated")
         (let* ((category (agets body "category"))
                (id (agets category "id"))
                (parent-id (agets category "parent_category_id")))
+          (when parent-id
+            (switch (parent-id)
+              ((getf (get-config :discourse) :exam-category)
+               (get-category-info id)
+               (get-exam-subjects)
+               (when (string= event "category_created")
+                 (remhash (exam-list-url id) *cache*)
+                 (get-exams id)))
+              ((getf (get-config :discourse) :lab-course-category)
+               (get-lab-course-table nil))))
           (when (and parent-id
                    (= parent-id (getf (get-config :discourse) :exam-category)))
-            (get-category-info id)
-            (get-exam-subjects)
-            (when (string= event "category_created")
-              (remhash (exam-list-url id) *cache*)
-              (get-exams id)))))
+            )))
       ('("full_drop")                       ; park that option for now
         (log:info "Full cache drop.")
         (setf *cache* (make-hash-table :test 'equal)))
@@ -304,12 +324,13 @@ download link and the rest is parsed as notes. Returns an EXAM."
 (defun lab-list-url (id)
   #?"/c/${(getf *config* :lab-course-category)}/${id}.json")
 
-(defun make-auto-slot (definiton accessor)
-  (destructuring-bind (name type &rest rest) definiton
-    (let ((slot `(,name :type ,type :initarg ,(make-keyword name) ,@rest)))
-      (if accessor
-          (nconc slot `(:accessor ,name))
-          slot))))
+(eval-always
+  (defun make-auto-slot (definiton accessor)
+    (destructuring-bind (name type &rest rest) definiton
+      (let ((slot `(,name :type ,type :initarg ,(make-keyword name) ,@rest)))
+        (if accessor
+            (nconc slot `(:accessor ,name))
+            slot)))))
 
 (defmacro defautoclass (name superclasses slot-definitions &rest rest)
   `(defclass ,name ,superclasses
@@ -322,7 +343,8 @@ download link and the rest is parsed as notes. Returns an EXAM."
   ((:reader
     ((id fixnum)
      (name string)
-     (slug string)))))
+     (slug string)
+     (category string)))))
 
 (defautoclass lab-test ()
   ((:reader ((tutor string)
@@ -334,7 +356,7 @@ download link and the rest is parsed as notes. Returns an EXAM."
   ((:reader
     ((tests proper-list)))))
 
-(defun parse-lab-course-topic (topic)
+(defun parse-lab-course-topic (topic category)
   (abind (title id) topic
          (multiple-value-bind (match parts) (ppcre:scan-to-strings "(.*?):\\s*(.*)" title)
            (if (or (not match) (< (length parts) 2))
@@ -342,7 +364,9 @@ download link and the rest is parsed as notes. Returns an EXAM."
                       :id id
                       :title title
                       :reason "Malformed Title")
-               (make-instance 'lab-course-rump :id id :name (elt parts 1) :slug (elt parts 0))))))
+               (make-instance 'lab-course-rump
+                              :category category
+                              :id id :name (elt parts 1) :slug (elt parts 0))))))
 
 (defun get-lab-courses ()
   "Retrieves a hash-table of lab-courses keyed by their superior course. "
@@ -355,7 +379,7 @@ download link and the rest is parsed as notes. Returns an EXAM."
                 (let ((topics (aget res :topic--list :topics)))
                   (loop :for topic :in topics
                         :for lab-course =
-                                        (handler-case (parse-lab-course-topic topic)
+                                        (handler-case (parse-lab-course-topic topic name)
                                           (malformed-topic-error (error)
                                             (log:debug error (slot-value error 'reason)
                                                        (slot-value error 'title)
@@ -365,4 +389,5 @@ download link and the rest is parsed as notes. Returns an EXAM."
     lab-table))
 
 (defun get-lab-course-table (padding)
-  (hash->padded-table (get-lab-courses) padding))
+  (with-cache :lab-course-table
+   (hash->padded-table (get-lab-courses) padding)))

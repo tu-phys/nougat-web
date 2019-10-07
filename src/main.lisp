@@ -136,6 +136,7 @@
       (:a :class "button"
           :href #?"${,forum-url}/${,link}"
           (str ,text)))))
+
 ;;
 ;; Routes
 ;;
@@ -157,9 +158,10 @@
                       (str (welcome *app*)))))
         (:div :class "row"
               (:div :class "col-md-3 sm-12 col-md-offset-3"
-                    (card (:title "Antestate" :class "selector")
-                      "Gesammelte Fragen der Antestate zu
-                                den Physik-Praktika der TUD. <br> <i> Coming Soon </i>"))
+                    (:a :href (url-for :lab-courses)
+                        (card (:title "Antestate" :class "selector")
+                          "Gesammelte Fragen der Antestate zu den
+                                Physik-Praktika der TUD.")))
               (:div :class "col-md-3 sm-12"
                     (:a :href (url-for :exams)
                      (card (:title "Altklausuren" :class "selector")
@@ -188,6 +190,7 @@
                             do (htm
                                 (:tr (loop
                                        for el in row
+                                       for i from 0
                                        do (if el
                                               (htm
                                                (:td :class "with-cat"
@@ -196,11 +199,55 @@
                                                      :href
                                                      (url-for module-route
                                                               :id (write-to-string (aget el :id)))
-                                                     :class "tooltip"
+                                                     :class #?|tooltip ${(when (= 0 i) "bottom")}|
+
                                                      :aria-label (aget el :name)
                                                      (str (aget el :slug)))))
                                               (htm (:td
                                                     "&nbsp;"))))))))))))))))))
+(defroute :lab-course ("/lab-courses/:course")
+  "Coming soon :).")
+
+(defroute :lab-courses ("/lab-courses")
+  (with-handle-discourse
+      (destructuring-bind (keys table) (get-lab-course-table nil)
+        (let ((module-route (get-route-by-name :lab-course)))
+          (with-who
+              (base (:title "Altklausuren") ; TODO: reduce dublication by using clos for modules too!
+                (:div
+                 :class "row"
+                 (:div
+                  :class "col-sm-12"
+                  (card (:title "Altklausuren"
+                         :extra-title
+                         (goto-forum-button #?"c/${(getf (get-config :discourse) :lab-course-category)}"))
+                    (:table
+                        :class "horizontal striped cat-table"
+                        (:thead (loop for key in keys do
+                          (htm
+                           (:th (str key)))))
+                        (:tbody
+                         (loop for row in table
+                               do (htm
+                                   (:tr (loop
+                                          for el in row
+                                          for i from 0
+                                          do (if el
+                                                 (with-accessors ((name name)
+                                                                  (slug slug)
+                                                                  (id id)
+                                                                  (cat category))
+                                                     el
+                                                   (htm
+                                                    (:td :class "with-cat"
+                                                         :data-label cat
+                                                         (:a
+                                                          :href #?"${(getf (get-config :discourse) :url)}/t/${id}"
+                                                          :class #?|tooltip ${(when (= 0 i) "bottom")}|
+                                                          :aria-label name
+                                                          (str slug)))))
+                                                 (htm (:td
+                                                       "&nbsp;"))))))))))))))))))
 
 (defroute :module ("/exams/:id" params)
   (abind (id) params
@@ -245,6 +292,7 @@
                                            (:td :data-label "Jahr" (str year))
                                            (:td :data-label "Dozent" (str prof))
                                            (:td :data-label "Bemerkungen" (str notes))))))))))))))))))
+
 (defroute :discourse-webhook ("/drop-caches/:token" params :method :post)
   (if (string= (aget params :token) (get-config :cache-token))
       (let* ((body (lack.request:request-body-parameters ningle:*request*))
