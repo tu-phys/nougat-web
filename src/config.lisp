@@ -17,7 +17,8 @@
                   :key "cd55b5a3b1ef98ba9baf3a57daaa40872e48f7a3ee769b497882ac4e39caf0f6"
                   :username "hiro98"
 
-                  :exam-category 33)))
+                  :exam-category 33
+                  :lab-course-category 35)))
 
 (defconfig |development|
     '(:log-level :debug

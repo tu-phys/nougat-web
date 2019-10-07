@@ -128,6 +128,7 @@ result of BODY."
 ;; API
 ;;
 
+(deftype category-type () '(member :exam :lab-course))
 (defvar *meta-sep-scanner* (ppcre:create-scanner "---+")) ; TODO: put in config
 (defun parse-meta-block (desc)                            ; TODO: exceptions...
   "Parses a yaml formatted meta block separated by *META-SEP-SCANNER* into a hash table.
@@ -168,13 +169,17 @@ Takes DESC like ~key: value; key1: value and returns a dictionary."
       data))
   (:documentation "Gets detailed info of a category with the data."))
 
+(defun get-subcategories (id)
+  "Gets a list of subcategories of the category with ID."
+  (get-cached
+      (#?"/categories.json?parent_category_id=${id}" res)
+    (aget res :category--list :categories)))
+
 (defun get-exam-subjects ()
   "Fetches the Modules which have exams available."
   (with-cache :exam-subjects
     (let* ((categories
-             (get-cached (#?"/categories.json?parent_category_id=${(getf *config* :exam-category)}"
-                            res :exam-categories)
-               (aget res :category--list :categories)))
+             (get-subcategories (getf *config* :exam-category)))
            (subjects (loop for cat-data in categories
                            for cat = (get-category-info cat-data)
                            when cat collecting cat))
@@ -204,11 +209,17 @@ Takes DESC like ~key: value; key1: value and returns a dictionary."
              (table (apply #'mapcar #'list padded)))
         (list keys table)))))
 
-(define-condition malformed-exam-error (error)
+(define-condition malformed-topic-error (error)
   ((reason :initarg :reason :reader reason)
    (title :initarg :title :reader reason)
    (body :initarg :body :reader body :initform nil)
    (id :initarg :id :reader :id :initform nil)))
+
+(define-condition malformed-exam-error (malformed-topic-error)
+  ())
+
+(define-condition malformed-lab-couse-error (malformed-topic-error)
+  ())
 
 (defstruct exam
   (year "" :type string)
@@ -234,26 +245,27 @@ shape (YEAR TITLE)."
   (get-cached ((topic-url id) res)
     res))
 
-(defun get-exam (title id tags subject-id)
+(defun get-exam (topic subject-id)
   "Gets and parses an exam from the discourse API. The title is parsed
 with PARSE-EXAM-TITLE. The first link in the body is taken to be the
 download link and the rest is parsed as notes. Returns an EXAM."
-  (destructuring-bind (year prof) (parse-exam-title title)
-    (let* ((first-post (first (aget (get-topic id) :post--stream :posts)))
-           (body (aget first-post :cooked)))
-      (multiple-value-bind (begin end link-begin link-end)
-          (ppcre:scan "href=\"(.*)\">.*(?:$|<br>|</p>)" body)
-        (if begin
-            (let ((link (subseq body (first-elt link-begin) (first-elt link-end)))
-                  (notes (subseq body end)))
-              (make-exam :year year :prof prof :download (concatenate 'string (getf *config* :url) link)
-                         :notes notes :tags tags :subject-id (if (stringp subject-id)
-                                                                 (parse-integer subject-id)
-                                                                 subject-id)))
-            (error 'malformed-exam-error :title title
-                                         :body body
-                                         :id id
-                                         :reason "Link not found."))))))
+  (abind (title id tags) topic
+    (destructuring-bind (year prof) (parse-exam-title title)
+      (let* ((first-post (first (aget (get-topic id) :post--stream :posts)))
+             (body (aget first-post :cooked)))
+        (multiple-value-bind (begin end link-begin link-end)
+            (ppcre:scan "href=\"(.*)\">.*(?:$|<br>|</p>)" body)
+          (if begin
+              (let ((link (subseq body (first-elt link-begin) (first-elt link-end)))
+                    (notes (subseq body end)))
+                (make-exam :year year :prof prof :download (concatenate 'string (getf *config* :url) link)
+                           :notes notes :tags tags :subject-id (if (stringp subject-id)
+                                                                   (parse-integer subject-id)
+                                                                   subject-id)))
+              (error 'malformed-exam-error :title title
+                                           :body body
+                                           :id id
+                                           :reason "Link not found.")))))))
 
 (defun exam-list-url (id)
   #?"/c/${(getf *config* :exam-category)}/${id}.json")
@@ -270,7 +282,7 @@ download link and the rest is parsed as notes. Returns an EXAM."
 
       (let* ((topics (aget res :topic--list :topics))
              (exams (loop :for topic :in topics
-                          :for exam = (handler-case (get-exam (aget topic :title) (aget topic :id) (aget topic :tags)
+                          :for exam = (handler-case (get-exam topic
                                                               subject-id)
                                         (malformed-exam-error (error)
                                           (log:debug error (slot-value error 'reason)
@@ -279,3 +291,71 @@ download link and the rest is parsed as notes. Returns an EXAM."
                                           nil))
                           :when exam :collecting exam)))
         (sort exams #'> :key #'ex-year)))))
+
+;;
+;; Lab Courses
+;;
+
+(defun lab-list-url (id)
+  #?"/c/${(getf *config* :lab-course-category)}/${id}.json")
+
+(defun make-auto-slot (definiton accessor)
+  (destructuring-bind (name type &rest rest) definiton
+    (let ((slot `(,name :type ,type :initarg ,(make-keyword name) ,@rest)))
+      (if accessor
+          (nconc slot `(:accessor ,name))
+          slot))))
+
+(defmacro defautoclass (name superclasses slot-definitions &rest rest)
+  `(defclass ,name ,superclasses
+     ,@(loop :for (accessor definions) :in slot-definitions
+             :collecting (mapcar #'(lambda (def) (make-auto-slot def accessor))
+                                 definions))
+     ,@rest))
+
+(defautoclass lab-course-rump ()
+  ((:reader
+    ((id fixnum)
+     (name string)
+     (slug string)))))
+
+(defautoclass lab-test ()
+  ((:reader ((tutor string)
+             (year fixnum)
+             (questions proper-list)
+             (notes string)))))
+
+(defautoclass lab-course (lab-couse-rump)
+  ((:reader
+    ((tests proper-list)))))
+
+(defun parse-lab-course-topic (topic)
+  (abind (title id) topic
+         (multiple-value-bind (match parts) (ppcre:scan-to-strings "(.*?):\\s*(.*)" title)
+           (if (or (not match) (< (length parts) 2))
+               (error 'malformed-lab-couse-error
+                      :id id
+                      :title title
+                      :body topic
+                      :reason "Malformed Title")
+               (make-instance 'lab-course-rump :id id :name (elt parts 1) :slug (elt parts 0))))))
+
+(defun get-lab-courses ()
+  "Retrieves a hash-table of lab-courses keyed by their superior course. "
+  (let ((courses (get-subcategories (getf *config* :lab-course-category)))
+        (lab-table (make-hash-table :test 'equal)))
+    (dolist (lab courses)
+      (abind (name id) lab
+        (setf (@ lab-table name)
+              (get-cached ((lab-list-url id) res) ; TODO: reduce code dublication
+                (let ((topics (aget res :topic--list :topics)))
+                  (loop :for topic :in topics
+                        :for lab-course =
+                                        (handler-case (parse-lab-course-topic topic)
+                                          (malformed-topic-error (error)
+                                            (log:debug error (slot-value error 'reason)
+                                                       (slot-value error 'title)
+                                                       (slot-value error 'id))
+                                            nil))
+                        :when lab-course :collecting lab-course))))))
+    lab-table))
