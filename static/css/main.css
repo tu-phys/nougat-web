@@ -32,7 +32,6 @@ header img {
 
     .cat-table td a {
         display: block;
-        width: 100%;
         padding: calc(2 * var(--universal-padding));
     }
 
