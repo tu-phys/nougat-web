@@ -192,22 +192,27 @@ Takes DESC like ~key: value; key1: value and returns a dictionary."
                   cat))))
       sorted-hash)))
 
+(defun hash->padded-table (hash padding)
+  "Sorts a hash table HASH into a list of headers and rows akin to a html
+table. Padds missing elements with TABLE."
+  (flet ((pad (list n pad-el)
+           (nconc list (repeat-sequence (list pad-el) (- n (length list))))))
+    (let* ((cats hash)
+           (keys (hash-table-keys cats))
+           (values (mapcar #'(lambda (el)
+                               (@ cats el))
+                           keys))
+           (maxlength (apply #'max (mapcar #'length
+                                           values)))
+           (padded (mapcar #'(lambda (el)
+                               (pad el maxlength padding))
+                    values))
+           (table (apply #'mapcar #'list padded)))
+      (list keys table))))
+
 (defun get-exam-subjects-table (padding)
   (with-cache :exam-subjects-table
-    (flet ((pad (list n pad-el)
-             (nconc list (repeat-sequence (list pad-el) (- n (length list))))))
-      (let* ((cats (get-exam-subjects))
-             (keys (hash-table-keys cats))
-             (values (mapcar #'(lambda (el)
-                                 (@ cats el))
-                             keys))
-             (maxlength (apply #'max (mapcar #'length
-                                             values)))
-             (padded (mapcar #'(lambda (el)
-                                 (pad el maxlength padding))
-                      values))
-             (table (apply #'mapcar #'list padded)))
-        (list keys table)))))
+    (hash->padded-table (get-exam-subjects) padding)))
 
 (define-condition malformed-topic-error (error)
   ((reason :initarg :reason :reader reason)
@@ -336,7 +341,6 @@ download link and the rest is parsed as notes. Returns an EXAM."
                (error 'malformed-lab-couse-error
                       :id id
                       :title title
-                      :body topic
                       :reason "Malformed Title")
                (make-instance 'lab-course-rump :id id :name (elt parts 1) :slug (elt parts 0))))))
 
@@ -359,3 +363,6 @@ download link and the rest is parsed as notes. Returns an EXAM."
                                             nil))
                         :when lab-course :collecting lab-course))))))
     lab-table))
+
+(defun get-lab-course-table (padding)
+  (hash->padded-table (get-lab-courses) padding))
