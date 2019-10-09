@@ -214,7 +214,7 @@
                    :extra-head
                    ((:script :defer "true" :src "https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.js")
                     (:script :defer "true" :src "https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/contrib/auto-render.min.js"
-                             :onload "renderMathInElement(document.getElementsByClassName(\"h-math\"), {delimiters: [{left: \"$\", right: \"$\", display: false}, {left: \"$$\", right: \"$$\", display: true}]});")
+                             :onload "renderMathInElement(document.body, {delimiters: [{left: \"$\", right: \"$\", display: false}, {left: \"$$\", right: \"$$\", display: true}]});")
                     (:link
                      :type "text/css"   ; TODO central def
                      :rel "stylesheet"
@@ -222,7 +222,7 @@
               (:div
                :class "row"
                (:div
-                :class "col-sm-12 h-math"
+                :class "col-sm-12"
                 (card (:title (name course)
                        :extra-title
                        (goto-forum-button #?"/t/${(id course)}"))
