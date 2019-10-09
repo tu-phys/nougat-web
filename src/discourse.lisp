@@ -29,7 +29,10 @@
    :slug
    :category
    :body
-
+   :tutor
+   :year
+   :tests
+   :lab-course-tests-p
    :aget
    :abind
    :id
@@ -275,6 +278,9 @@ shape (YEAR TITLE)."
   (get-cached ((topic-url id) res)
     res))
 
+(defun post-url (id)
+  #?"/posts/${id}.json")
+
 (defun extract-first-post (topic)
   "Extracts the first post from the TOPIC api respons."
   (first (aget topic :post--stream :posts)))
@@ -358,25 +364,27 @@ download link and the rest is parsed as notes. Returns an EXAM."
 (defautoclass lab-test ()
   ((:reader (tutor string)
             (year fixnum)
-            (questions proper-list)
-            (notes string))))
+            (body string))))
 
 (defautoclass lab-course (lab-course-rump)
   ((:reader
     (tests proper-list)
     (body string))))
 
+(defun lab-course-tests-p (lab-course)
+  (slot-boundp lab-course 'tests))
+
 (defun parse-lab-course-topic (topic category)
   (abind (title id) topic
-         (multiple-value-bind (match parts) (ppcre:scan-to-strings "(.*?):\\s*(.*)" title)
-           (if (or (not match) (< (length parts) 2))
-               (error 'malformed-lab-couse-error
-                      :id id
-                      :title title
-                      :reason "Malformed Title")
-               (make-instance 'lab-course-rump
-                              :category category
-                              :id id :name (elt parts 1) :slug (elt parts 0))))))
+    (multiple-value-bind (match parts) (ppcre:scan-to-strings "(.*?):\\s*(.*)" title)
+      (if (or (not match) (< (length parts) 2))
+          (error 'malformed-lab-couse-error
+                 :id id
+                 :title title
+                 :reason "Malformed Title")
+          (make-instance 'lab-course-rump
+                         :category category
+                         :id id :name (elt parts 1) :slug (elt parts 0))))))
 
 (defun get-lab-courses ()
   "Retrieves a hash-table of lab-courses keyed by their superior course. "
@@ -402,6 +410,38 @@ download link and the rest is parsed as notes. Returns an EXAM."
   (with-cache :lab-course-table
     (hash->padded-table (get-lab-courses) padding)))
 
+(define-condition lab-parse-error (error)
+  ((raw :type string)
+   (reason :type string)))
+
+(defun parse-raw-lab (raw)
+  "Parses RAW into a list of lab tests."
+  (let* ((scanner (ppcre:create-scanner "^#\\s+" :multi-line-mode t))
+         (split (subseq (ppcre:split scanner raw) 1)))
+    (if split
+        (sort (loop :for ex :in split
+                    :collect
+
+                    (let* ((lines (str:lines ex)) ; TOTO: this can be done nicer
+                           (title (first lines))
+                           (body (str:unlines (subseq lines 1))))
+
+                      (multiple-value-bind (matched matches) (ppcre:scan-to-strings "(.*)\\s+\\((.*)\\)" title)
+                        (if (and matched (= 2 (length matches)))
+                            (make-instance 'lab-test :tutor (elt matches 0)
+                                                     :year (handler-case (parse-integer (elt matches 1))
+                                                             (sb-int:simple-parse-error (e)
+                                                               (declare (ignore e))
+                                                               (error 'lab-parse-error
+                                                                      :raw raw
+                                                                      :reason #?"Invalid year: ${(elt matches 1)}")))
+                                                     :body (with-output-to-string (s)
+                                                             (3bmd:parse-string-and-print-to-stream  body s)))
+
+                            (error 'lab-parse-error :raw raw :reason #?"Invalid title: ${title}")))))
+              #'> :key #'year)
+        (error 'lab-parse-error :raw raw :reason #?"Invalid body: ${raw}"))))
+
 (defgeneric get-full-lab-course (lab-course &optional category)
   (:method ((id string) &optional category)
     (get-full-lab-course (parse-integer id) category))
@@ -409,9 +449,17 @@ download link and the rest is parsed as notes. Returns an EXAM."
     (get-cached ((topic-url id) res)
       (get-full-lab-course res category)))
   (:method ((topic list) &optional category)
-    (let ((lab-course (parse-lab-course-topic topic category)))
-      (change-class lab-course (find-class 'lab-course)
-                    :body (aget (extract-first-post topic) :cooked))))
+    (let* ((lab-course (parse-lab-course-topic topic category))
+           (first (extract-first-post topic))
+           (body (get-cached ((post-url (aget first :id)) res)
+                   (aget res :raw))))
+      (handler-case (let ((tests (parse-raw-lab body)))
+                      (change-class lab-course (find-class 'lab-course)
+                                    :tests tests))
+        (lab-parse-error (e)
+          (log:debug e)
+          (change-class lab-course (find-class 'lab-course)
+                        :body (aget first :cooked))))))
   (:method ((topic lab-course-rump) &optional category)
     (declare (ignore category))
     (get-full-lab-course (id topic)))

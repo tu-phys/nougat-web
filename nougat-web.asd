@@ -3,7 +3,8 @@
   :author "Valentin Boettcher"
   :license "LLGPL"
   :depends-on ("ningle" "clack" "cl-who" "log4cl" "envy" "cl-fad" "3bmd" "dexador"
-                        "cl-interpol" "cl-json" "cl-arrows" "serapeum" "cl-yaml")
+                        "cl-interpol" "cl-json" "cl-arrows" "serapeum" "cl-yaml"
+                        "str")
   :components ((:module "src"
                 :components
                 ((:file "config")

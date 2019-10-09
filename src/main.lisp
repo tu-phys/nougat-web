@@ -217,7 +217,18 @@
                 (card (:title (name course)
                        :extra-title
                        (goto-forum-button #?"/t/${(id course)}"))
-                  (str (body course))))))))))
+                  (if (lab-course-tests-p course)
+                      (htm (:div :class "collapse"
+                                 (loop :for test :in (tests course)
+                                       :for i :from 1
+                                       :do (let ((label #?"collapse-section${i}"))
+                                             (htm
+                                              (:input :type "radio" :id label :aria-hidden "true" :name "accordeon")
+                                              (:label :for label :aria-hidden "true"
+                                                      (:b (str #?"${(year test)}: ${(tutor test)}")))
+                                              (:div (str (body test))))))))
+
+                      (str (body course)))))))))))
 
 (defroute :lab-courses ("/lab-courses")
   (with-handle-discourse
