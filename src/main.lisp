@@ -74,7 +74,7 @@
   (with-thunk (body)
     `(handle-discourse ,body)))
 
-(defmacro base ((&key title nav stylesheets header-links) &body content)
+(defmacro base ((&key title nav extra-head stylesheets header-links) &body content)
   `(htm
     (:html
      (:head
@@ -82,13 +82,7 @@
       (:meta :name "viewport" :content "width=device-width, initial-scale=1.0")
       (:meta :name "robots" :content "index, follow")
       (:title (str #?"Klausur Nougat - ${,title}"))
-      (:script :defer "true" :src "https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.js")
-      (:script :defer "true" :src "https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/contrib/auto-render.min.js"
-               :onload "renderMathInElement(document.body, {delimiters: [{left: \"$\", right: \"$\", display: false}, {left: \"$$\", right: \"$$\", display: true}]});")
-      (:link
-       :type "text/css"                 ; TODO central def
-       :rel "stylesheet"
-       :href "https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.css")
+      ,@extra-head
       (loop for style in (concatenate 'list ,stylesheets (stylesheets *app*))
             collect
             (htm (:link
@@ -212,15 +206,23 @@
                                                      (str (aget el :slug)))))
                                               (htm (:td
                                                     "&nbsp;"))))))))))))))))))
-(defroute :lab-course ("/lab-courses/:course" params)
+(defroute :lab-course ("/lab-course/:course" params)
   (with-handle-discourse
       (let ((course (get-full-lab-course (aget params :course))))
         (with-who
-            (base (:title "Altklausuren") ; TODO: reduce dublication by using clos for modules too!
+            (base (:title "Antestate"
+                   :extra-head
+                   ((:script :defer "true" :src "https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.js")
+                    (:script :defer "true" :src "https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/contrib/auto-render.min.js"
+                             :onload "renderMathInElement(document.getElementsByClassName(\"h-math\"), {delimiters: [{left: \"$\", right: \"$\", display: false}, {left: \"$$\", right: \"$$\", display: true}]});")
+                    (:link
+                     :type "text/css"   ; TODO central def
+                     :rel "stylesheet"
+                     :href "https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.css"))) ; TODO: reduce dublication by using clos for modules too!
               (:div
                :class "row"
                (:div
-                :class "col-sm-12"
+                :class "col-sm-12 h-math"
                 (card (:title (name course)
                        :extra-title
                        (goto-forum-button #?"/t/${(id course)}"))
@@ -237,7 +239,7 @@
 
                       (str (body course)))))))))))
 
-(defroute :lab-courses ("/lab-courses")
+(defroute :lab-courses ("/lab-course")
   (with-handle-discourse
       (destructuring-bind (keys table) (get-lab-course-table nil)
         (let ((module-route (get-route-by-name :lab-course)))
