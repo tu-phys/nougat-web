@@ -82,6 +82,13 @@
       (:meta :name "viewport" :content "width=device-width, initial-scale=1.0")
       (:meta :name "robots" :content "index, follow")
       (:title (str #?"Klausur Nougat - ${,title}"))
+      (:script :defer "true" :src "https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.js")
+      (:script :defer "true" :src "https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/contrib/auto-render.min.js"
+               :onload "renderMathInElement(document.body, {delimiters: [{left: \"$\", right: \"$\", display: false}, {left: \"$$\", right: \"$$\", display: true}]});")
+      (:link
+       :type "text/css"                 ; TODO central def
+       :rel "stylesheet"
+       :href "https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.css")
       (loop for style in (concatenate 'list ,stylesheets (stylesheets *app*))
             collect
             (htm (:link
