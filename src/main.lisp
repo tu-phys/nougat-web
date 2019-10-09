@@ -205,8 +205,19 @@
                                                      (str (aget el :slug)))))
                                               (htm (:td
                                                     "&nbsp;"))))))))))))))))))
-(defroute :lab-course ("/lab-courses/:course")
-  "Coming soon :).")
+(defroute :lab-course ("/lab-courses/:course" params)
+  (with-handle-discourse
+      (let ((course (get-full-lab-course (aget params :course))))
+        (with-who
+            (base (:title "Altklausuren") ; TODO: reduce dublication by using clos for modules too!
+              (:div
+               :class "row"
+               (:div
+                :class "col-sm-12"
+                (card (:title (name course)
+                       :extra-title
+                       (goto-forum-button #?"/t/${(id course)}"))
+                  (str (body course))))))))))
 
 (defroute :lab-courses ("/lab-courses")
   (with-handle-discourse
@@ -242,7 +253,7 @@
                                                     (:td :class "with-cat"
                                                          :data-label cat
                                                          (:a
-                                                          :href #?"${(getf (get-config :discourse) :url)}/t/${id}"
+                                                          :href (url-for module-route :course (write-to-string id))
                                                           :class #?|tooltip ${(when (= 0 i) "bottom")}|
                                                           :aria-label name
                                                           (str slug)))))

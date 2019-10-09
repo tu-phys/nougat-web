@@ -12,6 +12,7 @@
 
    :get-lab-courses
    :get-lab-course-table
+   :get-full-lab-course
 
    :drop-cache
 
@@ -23,9 +24,11 @@
    :exam-tags
 
    :lab-course-rump
+   :lab-course
    :name
    :slug
    :category
+   :body
 
    :aget
    :abind
@@ -263,6 +266,7 @@ shape (YEAR TITLE)."
         (error 'malformed-exam-error :reason "Invalid Title"
                                      :title title))))
 
+(-> topic-url ((or fixnum string)) string)
 (defun topic-url (id)
   #?"/t/${id}.json")
 
@@ -270,13 +274,17 @@ shape (YEAR TITLE)."
   (get-cached ((topic-url id) res)
     res))
 
+(defun extract-first-post (topic)
+  "Extracts the first post from the TOPIC api respons."
+  (first (aget topic :post--stream :posts)))
+
 (defun get-exam (topic subject-id)
   "Gets and parses an exam from the discourse API. The title is parsed
 with PARSE-EXAM-TITLE. The first link in the body is taken to be the
 download link and the rest is parsed as notes. Returns an EXAM."
   (abind (title id tags) topic
     (destructuring-bind (year prof) (parse-exam-title title)
-      (let* ((first-post (first (aget (get-topic id) :post--stream :posts)))
+      (let* ((first-post (extract-first-post (get-topic id)))
              (body (aget first-post :cooked)))
         (multiple-value-bind (begin end link-begin link-end)
             (ppcre:scan "href=\"(.*)\">.*(?:$|<br>|</p>)" body)
@@ -334,27 +342,28 @@ download link and the rest is parsed as notes. Returns an EXAM."
 
 (defmacro defautoclass (name superclasses slot-definitions &rest rest)
   `(defclass ,name ,superclasses
-     ,@(loop :for (accessor definions) :in slot-definitions
+     ,@(loop :for (accessor . definions) :in slot-definitions
              :collecting (mapcar #'(lambda (def) (make-auto-slot def accessor))
                                  definions))
      ,@rest))
 
 (defautoclass lab-course-rump ()
   ((:reader
-    ((id fixnum)
-     (name string)
-     (slug string)
-     (category string)))))
+    (id fixnum)
+    (name string)
+    (slug string)
+    (category (or null string fixnum)))))
 
 (defautoclass lab-test ()
-  ((:reader ((tutor string)
-             (year fixnum)
-             (questions proper-list)
-             (notes string)))))
+  ((:reader (tutor string)
+            (year fixnum)
+            (questions proper-list)
+            (notes string))))
 
-(defautoclass lab-course (lab-couse-rump)
+(defautoclass lab-course (lab-course-rump)
   ((:reader
-    ((tests proper-list)))))
+    (tests proper-list)
+    (body string))))
 
 (defun parse-lab-course-topic (topic category)
   (abind (title id) topic
@@ -390,4 +399,20 @@ download link and the rest is parsed as notes. Returns an EXAM."
 
 (defun get-lab-course-table (padding)
   (with-cache :lab-course-table
-   (hash->padded-table (get-lab-courses) padding)))
+    (hash->padded-table (get-lab-courses) padding)))
+
+(defgeneric get-full-lab-course (lab-course &optional category)
+  (:method ((id string) &optional category)
+    (get-full-lab-course (parse-integer id) category))
+  (:method ((id fixnum) &optional category)
+    (get-cached ((topic-url id) res)
+      (get-full-lab-course res category)))
+  (:method ((topic list) &optional category)
+    (let ((lab-course (parse-lab-course-topic topic category)))
+      (change-class lab-course (find-class 'lab-course)
+                    :body (aget (extract-first-post topic) :cooked))))
+  (:method ((topic lab-course-rump) &optional category)
+    (declare (ignore category))
+    (get-full-lab-course (id topic)))
+  (:documentation "Gets the details of a LAB-COURSE and returns an
+  instance of LAB-COURSE."))
