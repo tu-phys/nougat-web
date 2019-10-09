@@ -93,6 +93,7 @@
                      (let ((*no-cache* nil)) (get-exams cat-id)))
                     ((getf (get-config :discourse) :lab-course-category)
                      (get-lab-course-table nil)
+                     (print id)
                      (get-full-lab-course id)))))
             (error (e)
               (declare (ignore e))))))
