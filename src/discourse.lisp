@@ -84,7 +84,6 @@
                  (cat-id (aget topic :category--id))
                  (cat (get-category-info cat-id))
                  (parent-id (aget cat :parent--category--id)))
-            (log:info topic parent-id)
             (when parent-id
               (switch (parent-id)
                 ((getf (get-config :discourse) :exam-category)
