@@ -244,12 +244,12 @@
       (destructuring-bind (keys table) (get-lab-course-table nil)
         (let ((module-route (get-route-by-name :lab-course)))
           (with-who
-              (base (:title "Altklausuren") ; TODO: reduce dublication by using clos for modules too!
+              (base (:title "Antestate") ; TODO: reduce dublication by using clos for modules too!
                 (:div
                  :class "row"
                  (:div
                   :class "col-sm-12"
-                  (card (:title "Altklausuren"
+                  (card (:title "Antestate"
                          :extra-title
                          (goto-forum-button #?"c/${(getf (get-config :discourse) :lab-course-category)}"))
                     (:table
