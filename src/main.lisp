@@ -210,7 +210,7 @@
   (with-handle-discourse
       (let ((course (get-full-lab-course (aget params :course))))
         (with-who
-            (base (:title "Antestate"
+            (base (:title #?"Antestate - ${(name course)}"
                    :extra-head
                    ((:script :defer "true" :src "https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.js")
                     (:script :defer "true" :src "https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/contrib/auto-render.min.js"
@@ -229,13 +229,13 @@
                   (if (lab-course-tests-p course)
                       (htm (:div :class "collapse"
                                  (loop :for test :in (tests course)
-                                       :for i :from 1
-                                       :do (let ((label #?"collapse-section${i}"))
-                                             (htm
-                                              (:input :type "radio" :id label :aria-hidden "true" :name "accordeon")
-                                              (:label :for label :aria-hidden "true"
-                                                      (:b (str #?"${(year test)}: ${(tutor test)}")))
-                                              (:div (str (body test))))))))
+                                    :for i :from 1
+                                    :do (let ((label #?"collapse-section${i}"))
+                                          (htm
+                                           (:input :type "radio" :id label :aria-hidden "true" :name "accordeon")
+                                           (:label :for label :aria-hidden "true"
+                                                   (:b (str #?"${(year test)}: ${(tutor test)}")))
+                                           (:div (str (body test))))))))
 
                       (str (body course)))))))))))
 
