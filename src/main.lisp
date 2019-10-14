@@ -213,7 +213,7 @@
   (with-handle-discourse
       (let ((course (get-full-lab-course (aget params :course))))
         (with-who
-            (base (:title #?"Antestate - ${(name course)} (${slug course})"
+            (base (:title #?"Antestate - ${(name course)}"
                    :extra-head
                    ((:script :defer "true" :src "https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.js")
                     (:script :defer "true" :src "https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/contrib/auto-render.min.js"
