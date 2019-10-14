@@ -148,8 +148,8 @@
            #'(lambda (,(if param-sym param-sym param))
                ,@(when (not param-sym)
                    `((declare (ignore ,param))))
-               (setf (lack.response:response-headers *response*)
-                     (append (lack.response:response-headers *response*)
+               (setf (lack.response:response-headers ningle:*response*)
+                     (append (lack.response:response-headers ningle:*response*)
                              (list :content-type "text/html")))
                ,@body))))
 
