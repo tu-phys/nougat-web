@@ -142,12 +142,15 @@
 ;; Routes
 ;;
 
-(defmacro defroute (name (path &optional param-sym &rest nimble-args) &body body)
+(defmacro defroute (name (path &optional param-sym (content-type "text/html") &rest nimble-args) &body body)
   (let ((param (gentemp)))
     `(setf (ningle:route *app* ,path ,@nimble-args :identifier ',name)
            #'(lambda (,(if param-sym param-sym param))
                ,@(when (not param-sym)
                    `((declare (ignore ,param))))
+               (setf (lack.response:response-headers *response*)
+                     (append (lack.response:response-headers *response*)
+                             (list :content-type ,content-type)))
                ,@body))))
 
 (defroute :home ("/")

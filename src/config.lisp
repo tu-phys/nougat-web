@@ -26,7 +26,7 @@
 
 (defconfig |production|
     `(:log-level :info
-      :clack-config (:port 8081)
+      :clack-config (:port 8081 :server woo)
       :cache-timeout ,sb-ext:double-float-positive-infinity))
 
 (defun app-config ()
