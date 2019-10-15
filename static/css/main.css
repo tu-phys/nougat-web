@@ -25,6 +25,20 @@ header img {
     z-index: 100000;
 }
 
+@media(max-width: 800px) {
+    .container {
+        padding: 0;
+    }
+
+    .card {
+        width: 100%;
+    }
+
+    .col-sm-12 {
+        padding: 0px;
+    }
+}
+
 @media(min-width: 800px) {
     .cat-table td.with-cat {
         padding: 0;

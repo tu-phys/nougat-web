@@ -161,12 +161,12 @@
                     (card (:title "Willkommen")
                       (str (welcome *app*)))))
         (:div :class "row"
-              (:div :class "col-md-3 sm-12 col-md-offset-3"
+              (:div :class "col-md-3 col-sm-12 col-md-offset-3"
                     (:a :href (url-for :lab-courses)
                         (card (:title "Antestate" :class "selector")
                           "Gesammelte Fragen der Antestate zu den
                                 Physik-Praktika der TUD.")))
-              (:div :class "col-md-3 sm-12"
+              (:div :class "col-md-3 col-sm-12"
                     (:a :href (url-for :exams)
                      (card (:title "Altklausuren" :class "selector")
                        "Alte Klausuren aus dem Physik
