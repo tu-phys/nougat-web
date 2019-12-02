@@ -424,7 +424,10 @@ download link and the rest is parsed as notes. Returns an EXAM."
 
                     (let* ((lines (str:lines ex)) ; TOTO: this can be done nicer
                            (title (first lines))
-                           (body (str:unlines (subseq lines 1))))
+                           (body
+                             (ppcre:regex-replace-all "\(upload://(.*)\)"
+                                                      (str:unlines (subseq lines 1))
+                                                      (concatenate 'string (getf *config* :url) "/uploads/short-url/\\2"))))
 
                       (multiple-value-bind (matched matches) (ppcre:scan-to-strings "(.*)\\s+\\((.*)\\)" title)
                         (if (and matched (= 2 (length matches)))
@@ -436,7 +439,7 @@ download link and the rest is parsed as notes. Returns an EXAM."
                                                                       :raw raw
                                                                       :reason #?"Invalid year: ${(elt matches 1)}")))
                                                      :body (with-output-to-string (s)
-                                                             (3bmd:parse-string-and-print-to-stream  body s)))
+                                                             (3bmd:parse-string-and-print-to-stream body s)))
 
                             (error 'lab-parse-error :raw raw :reason #?"Invalid title: ${title}")))))
               #'> :key #'year)
