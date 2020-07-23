@@ -14,7 +14,7 @@
       :cache-token "test"
       :md-files (:welcome "welcome.md")
       :discourse (:url "https://physik.protagon.space"
-                  :key "cd55b5a3b1ef98ba9baf3a57daaa40872e48f7a3ee769b497882ac4e39caf0f6"
+                  :key "47874185494acba8d993d4dd39f2b233e71a44df90e5296e160d4818ee57aacf"
                   :username "hiro98"
 
                   :exam-category 33

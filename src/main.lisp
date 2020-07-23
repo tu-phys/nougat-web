@@ -131,6 +131,9 @@
                              do
                                 (htm (:td  (str ,el))))))))))))
 
+(defun get-forum-url ()
+  (getf (get-config :discourse) :url))
+
 (defmacro goto-forum-button (link &optional (text "Im Forum ansehen..."))
   (let ((forum-url (getf (get-config :discourse) :url)))
     `(htm
@@ -302,14 +305,17 @@
                                      (:th)
                                      (:th "Jahr")
                                      (:th "Dozent")
-                                     (:th "Bemerkungen"))
+                                     (:th "Bemerkungen")
+                                     (:th "Lösungen"))
                                     (:tbody
                                      (dolist (exam exams)
                                        (with-accessors ((year exam-year)
                                                         (prof exam-prof)
                                                         (notes exam-notes)
                                                         (link exam-download)
-                                                        (tags exam-tags))
+                                                        (tags exam-tags)
+                                                        (topic-id exam-topic-id)
+                                                        (solutions exam-solutions))
                                            exam
                                          (htm
                                           (:tr
@@ -325,7 +331,17 @@
                                                (:mark :class "tag" (str (string-upcase tag))))))
                                            (:td :data-label "Jahr" (str year))
                                            (:td :data-label "Dozent" (str prof))
-                                           (:td :data-label "Bemerkungen" (str notes))))))))))))))))))
+                                           (:td :data-label "Bemerkungen" (str notes))
+                                           (:td
+                                            :data-label "Lösungen"
+                                            (dolist (sol solutions)
+                                              (htm
+                                               (:a
+                                                :href #?"${(get-forum-url)}/t/${topic-id}/${(first sol)}"
+                                                :class "button small download tooltip bottom"
+                                                :style "font-family: u1f400"
+                                                :aria-label (str (cdr sol))
+                                                (str "🧻")))))))))))))))))))))
 
 (defroute :discourse-webhook ("/drop-caches/:token" params :method :post)
   (if (string= (aget params :token) (get-config :cache-token))

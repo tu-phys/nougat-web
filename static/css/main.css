@@ -21,7 +21,11 @@ header img {
     max-width: 1000px;
 }
 
-.cat-table .tooltip.bottom:hover {
+td {
+    overflow: inherit !important;
+}
+
+.tooltip.bottom:hover {
     z-index: 100000;
 }
 

@@ -22,6 +22,8 @@
    :exam-notes
    :exam-download
    :exam-tags
+   :exam-solutions
+   :exam-topic-id
 
    :lab-course-rump
    :lab-course
@@ -259,7 +261,9 @@ table. Padds missing elements with TABLE."
   (download "" :type string)
   (notes "" :type string)
   (tags nil :type proper-sequence)
-  (subject-id "" :type fixnum))
+  (subject-id "" :type fixnum)
+  (topic-id "" :type fixnum)
+  (solutions "" :type proper-sequence))
 
 (defun parse-exam-title (title)
   "Parses the exam TITLE looking like `year: professor` into a list of
@@ -285,27 +289,45 @@ shape (YEAR TITLE)."
   "Extracts the first post from the TOPIC api respons."
   (first (aget topic :post--stream :posts)))
 
+(defun find-solutions (topic)
+  (let ((posts (aget topic :post--stream :posts)))
+    (reduce
+     #'(lambda (solutions topic)
+         (multiple-value-bind (_ sol-title)
+             (ppcre:scan-to-strings "<h1>(.*Lösung.*)</h1>"
+                                    (aget topic :cooked))
+           (declare (ignore _))
+           (if (not (emptyp sol-title))
+               (cons (cons (aget topic :post--number) (aref sol-title 0))
+                     solutions)
+               solutions)))
+     posts
+     :initial-value nil)))
+
 (defun get-exam (topic subject-id)
   "Gets and parses an exam from the discourse API. The title is parsed
 with PARSE-EXAM-TITLE. The first link in the body is taken to be the
 download link and the rest is parsed as notes. Returns an EXAM."
   (abind (title id tags) topic
-    (destructuring-bind (year prof) (parse-exam-title title)
-      (let* ((first-post (extract-first-post (get-topic id)))
-             (body (aget first-post :cooked)))
-        (multiple-value-bind (begin end link-begin link-end)
-            (ppcre:scan "href=\"(.*)\">.*(?:$|<br>|</p>)" body)
-          (if begin
-              (let ((link (subseq body (first-elt link-begin) (first-elt link-end)))
-                    (notes (subseq body end)))
-                (make-exam :year year :prof prof :download (concatenate 'string (getf *config* :url) link)
-                           :notes notes :tags tags :subject-id (if (stringp subject-id)
-                                                                   (parse-integer subject-id)
-                                                                   subject-id)))
-              (error 'malformed-exam-error :title title
-                                           :body body
-                                           :id id
-                                           :reason "Link not found.")))))))
+         (destructuring-bind (year prof) (parse-exam-title title)
+           (let* ((topic (get-topic id))
+                  (first-post (extract-first-post topic))
+                  (solutions (find-solutions topic))
+                  (body (aget first-post :cooked)))
+             (multiple-value-bind (begin end link-begin link-end)
+                 (ppcre:scan "href=\"(.*)\">.*(?:$|<br>|</p>)" body)
+               (if begin
+                   (let ((link (subseq body (first-elt link-begin) (first-elt link-end)))
+                         (notes (subseq body end)))
+                     (make-exam :year year :prof prof :download (concatenate 'string (getf *config* :url) link)
+                                :solutions solutions :topic-id id
+                                :notes notes :tags tags :subject-id (if (stringp subject-id)
+                                                                        (parse-integer subject-id)
+                                                                        subject-id)))
+                   (error 'malformed-exam-error :title title
+                                                :body body
+                                                :id id
+                                                :reason "Link not found.")))))))
 
 (defun exam-list-url (id)
   #?"/c/${(getf *config* :exam-category)}/${id}.json")
