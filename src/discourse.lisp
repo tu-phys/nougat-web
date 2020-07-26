@@ -317,7 +317,7 @@ shape (YEAR TITLE)."
   (with-cache #?"/t/${topic-id}/first/"
    (let* ((topic (get-topic topic-id))
           (first-post (extract-first-post topic)))
-     (aget first-post :cooked))))
+     (filter-body-links (aget first-post :cooked)))))
 
 (defun get-exam (topic subject-id)
   "Gets and parses an exam from the discourse API. The title is parsed
@@ -328,7 +328,8 @@ download link and the rest is parsed as notes. Returns an EXAM."
       (let* ((topic (get-topic id))
              (first-post (extract-first-post topic))
              (solutions (find-solutions topic))
-             (body (aget first-post :cooked)))
+             (body (filter-body-links
+                    (aget first-post :cooked))))
         (multiple-value-bind (begin end link-begin link-end)
             (ppcre:scan "href=\"(.*)\">.*(?:$|<br>|</p>)" body)
           (if begin
@@ -371,6 +372,11 @@ download link and the rest is parsed as notes. Returns an EXAM."
 (defun remove-prefix (string)
   "Removes the meta prefix from a string."
   (subseq string (+ 1 (length (get-config :prefix)))))
+
+(defun filter-body-links (body)
+  "Replace relative links to /uploads/ etc. with absolute links to the forum."
+  (ppcre:regex-replace-all "\"/uploads/" body
+                           #?"\"${(getf *config* :url)}/uploads/"))
 
 (defun meta-post (title)
   "Returns the title of a meta post or nil, if the post doesnt start
