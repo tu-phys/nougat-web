@@ -76,7 +76,7 @@
 
 (defun first-post (topic)
   (url-for :first-post
-           :id (write-to-string (aget (cdr topic) :id))))
+           :id (write-to-string (aget topic :id))))
 
 (defmacro base ((&key title nav extra-head stylesheets header-links) &body content)
   `(htm
@@ -103,7 +103,7 @@
                                             (str (cdr link)))))
                      (dolist (topic (get-meta-posts 33))
                        (htm
-                        (:a :class "button" :href (first-post topic)
+                        (:a :class "button" :href (first-post (cdr topic))
                             (str (car topic)))))
                      ,@nav)))
      (:div :class "container"
