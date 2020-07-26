@@ -174,9 +174,9 @@
                                 Physik-Praktika der TUD.")))
               (:div :class "col-md-3 col-sm-12"
                     (:a :href (url-for :exams)
-                     (card (:title "Altklausuren" :class "selector")
-                       "Alte Klausuren aus dem Physikstudium
-                                an der TUD.")))))))
+                        (card (:title "Altklausuren" :class "selector")
+                       "Alte <b>Klausuren, Skripte, Spicker</b> uvm. aus dem
+                                Physikstudium an der TUD.")))))))
 
 (defroute :exams ("/exams")
   (with-handle-discourse
