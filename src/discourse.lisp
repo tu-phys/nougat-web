@@ -337,7 +337,7 @@ download link and the rest is parsed as notes. Returns an EXAM."
           (if begin
               (let ((link (subseq body (first-elt link-begin) (first-elt link-end)))
                     (notes (subseq body end)))
-                (make-exam :year year :prof prof :download (concatenate 'string (getf *config* :url) link)
+                (make-exam :year year :prof prof :download link
                            :solutions solutions :topic-id id
                            :notes notes :tags tags :subject-id (if (stringp subject-id)
                                                                    (parse-integer subject-id)
