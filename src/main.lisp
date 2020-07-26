@@ -74,6 +74,10 @@
   (with-thunk (body)
     `(handle-discourse ,body)))
 
+(defun first-post (topic)
+  (url-for :first-post
+           :id (write-to-string (aget (cdr topic) :id))))
+
 (defmacro base ((&key title nav extra-head stylesheets header-links) &body content)
   `(htm
     (:html
@@ -97,6 +101,10 @@
                      (loop for link in (concatenate 'list ,header-links (header-links *app*))
                            collect (htm (:a :class "button" :href (car link)
                                             (str (cdr link)))))
+                     (dolist (topic (get-meta-posts 33))
+                       (htm
+                        (:a :class "button" :href (first-post topic)
+                            (str (car topic)))))
                      ,@nav)))
      (:div :class "container"
            ,@content))))
@@ -291,7 +299,6 @@
 (defroute :first-post ("/first-post/:id" params)
   (abind (id) params
     (with-handle-discourse
-        (format t "~s" (meta-post (aget (get-topic id) :title)))
         (let* ((topic (get-topic id))
                (title (meta-post (aget topic :title)))
                (id (aget topic :id)))
@@ -326,8 +333,7 @@
                                       (goto-forum-button #?"c/${(getf (get-config :discourse) :exam-category)}/${id}")
                                       (dolist (topic meta-posts)
                                         (htm (button (car topic)
-                                                 (url-for :first-post
-                                                          :id (write-to-string (aget (cdr topic) :id))))))))
+                                                 (first-post (cdr topic)))))))
                                 (:table
                                     :class "striped hoverable exams"
                                     (:thead

@@ -394,7 +394,11 @@ with the right prefix."
     (let* ((topics (aget res :topic--list :topics))
            (exams (loop :for topic :in topics
                         :for exam = (meta-post (aget topic :title))
-                        :when exam :collecting (cons exam topic))))
+                        :when exam :when (equal (aget topic :category--id)
+                                                (if (stringp subject-id)
+                                                    (parse-integer subject-id)
+                                                    subject-id))
+                          :collecting (cons exam topic))))
       exams)))
 
 ;;
