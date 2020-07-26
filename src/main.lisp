@@ -331,10 +331,9 @@
                                      :extra-title
                                      (htm
                                       (goto-forum-button #?"c/${(getf (get-config :discourse) :exam-category)}/${id}")
-                                      ;; (dolist (topic meta-posts)
-                                      ;;   (htm (button (car topic)
-                                      ;;            (first-post (cdr topic)))))
-                                      ))
+                                      (dolist (topic meta-posts)
+                                        (htm (button (car topic)
+                                                 (first-post (cdr topic)))))))
                                 (:table
                                     :class "striped hoverable exams"
                                     (:thead
