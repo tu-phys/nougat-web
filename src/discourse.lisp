@@ -8,6 +8,11 @@
    :get-exam-subjects
    :get-exam-subjects-table
    :get-exams
+
+   :get-topic
+   :meta-post
+   :get-first-post-body
+   :get-meta-posts
    :get-category-info
 
    :get-lab-courses
@@ -304,30 +309,37 @@ shape (YEAR TITLE)."
      posts
      :initial-value nil)))
 
+(defun get-first-post-body (topic-id)
+  "Gets the body of the first post in a topic."
+  (with-cache #?"/t/${topic-id}/first/"
+   (let* ((topic (get-topic topic-id))
+          (first-post (extract-first-post topic)))
+     (aget first-post :cooked))))
+
 (defun get-exam (topic subject-id)
   "Gets and parses an exam from the discourse API. The title is parsed
 with PARSE-EXAM-TITLE. The first link in the body is taken to be the
 download link and the rest is parsed as notes. Returns an EXAM."
   (abind (title id tags) topic
-         (destructuring-bind (year prof) (parse-exam-title title)
-           (let* ((topic (get-topic id))
-                  (first-post (extract-first-post topic))
-                  (solutions (find-solutions topic))
-                  (body (aget first-post :cooked)))
-             (multiple-value-bind (begin end link-begin link-end)
-                 (ppcre:scan "href=\"(.*)\">.*(?:$|<br>|</p>)" body)
-               (if begin
-                   (let ((link (subseq body (first-elt link-begin) (first-elt link-end)))
-                         (notes (subseq body end)))
-                     (make-exam :year year :prof prof :download (concatenate 'string (getf *config* :url) link)
-                                :solutions solutions :topic-id id
-                                :notes notes :tags tags :subject-id (if (stringp subject-id)
-                                                                        (parse-integer subject-id)
-                                                                        subject-id)))
-                   (error 'malformed-exam-error :title title
-                                                :body body
-                                                :id id
-                                                :reason "Link not found.")))))))
+    (destructuring-bind (year prof) (parse-exam-title title)
+      (let* ((topic (get-topic id))
+             (first-post (extract-first-post topic))
+             (solutions (find-solutions topic))
+             (body (aget first-post :cooked)))
+        (multiple-value-bind (begin end link-begin link-end)
+            (ppcre:scan "href=\"(.*)\">.*(?:$|<br>|</p>)" body)
+          (if begin
+              (let ((link (subseq body (first-elt link-begin) (first-elt link-end)))
+                    (notes (subseq body end)))
+                (make-exam :year year :prof prof :download (concatenate 'string (getf *config* :url) link)
+                           :solutions solutions :topic-id id
+                           :notes notes :tags tags :subject-id (if (stringp subject-id)
+                                                                   (parse-integer subject-id)
+                                                                   subject-id)))
+              (error 'malformed-exam-error :title title
+                                           :body body
+                                           :id id
+                                           :reason "Link not found.")))))))
 
 (defun exam-list-url (id)
   #?"/c/${(getf *config* :exam-category)}/${id}.json")
@@ -341,7 +353,6 @@ download link and the rest is parsed as notes. Returns an EXAM."
              (~> (ppcre:split "/" (exam-year exam))
                  (elt 0)
                  (parse-integer))))
-
       (let* ((topics (aget res :topic--list :topics))
              (exams (loop :for topic :in topics
                           :for exam = (handler-case (get-exam topic
@@ -353,6 +364,29 @@ download link and the rest is parsed as notes. Returns an EXAM."
                                           nil))
                           :when exam :collecting exam)))
         (sort exams #'> :key #'ex-year)))))
+
+(defun remove-prefix (string)
+  "Removes the meta prefix from a string."
+  (subseq string (+ 1 (length (get-config :prefix)))))
+
+(defun meta-post (title)
+  "Returns the title of a meta post or nil, if the post doesnt start
+with the right prefix."
+  (let ((key (get-config :prefix)))
+    (if (equal (subseq title 0 (length key)) key)
+        (remove-prefix title)
+        nil)))
+
+(defun get-meta-posts (subject-id)
+  "Finds all posts with a title starting with ` ...`."
+  (get-cached ((exam-list-url subject-id)
+               res
+               #?"/meta/${subject-id}")
+    (let* ((topics (aget res :topic--list :topics))
+           (exams (loop :for topic :in topics
+                        :for exam = (meta-post (aget topic :title))
+                        :when exam :collecting (cons exam topic))))
+      exams)))
 
 ;;
 ;; Lab Courses

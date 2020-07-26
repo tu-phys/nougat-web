@@ -134,12 +134,15 @@
 (defun get-forum-url ()
   (getf (get-config :discourse) :url))
 
+(defmacro button (text &optional (link "#"))
+  `(htm
+      (:a :class "button"
+          :href ,link
+          (str ,text))))
+
 (defmacro goto-forum-button (link &optional (text "Im Forum ansehen..."))
   (let ((forum-url (getf (get-config :discourse) :url)))
-    `(htm
-      (:a :class "button"
-          :href #?"${,forum-url}/${,link}"
-          (str ,text)))))
+    `(button ,text #?"${,forum-url}/${,link}")))
 
 ;;
 ;; Routes
@@ -285,12 +288,33 @@
                                                           (str slug)))))
                                                  (htm (:td
                                                        "&nbsp;"))))))))))))))))))
+(defroute :first-post ("/first-post/:id" params)
+  (abind (id) params
+    (with-handle-discourse
+        (format t "~s" (meta-post (aget (get-topic id) :title)))
+        (let* ((topic (get-topic id))
+               (title (meta-post (aget topic :title)))
+               (id (aget topic :id)))
+          (if title
+              (let ((body (get-first-post-body id)))
+                (with-who
+                    (base (:title title)
+                      (:div :class "row"
+                        (:div :class "col-sm-12"
+                              (card (:title title
+                                     :extra-title
+                                     (htm
+                                      (goto-forum-button #?"t/${id}")))
+                                (str body)))))))
+              (page-404)))
+      )))
 
 (defroute :module ("/exams/:id" params)
   (abind (id) params
     (with-handle-discourse
         (let ((info (get-category-info id))
-              (exams (get-exams id)))
+              (exams (get-exams id))
+              (meta-posts (get-meta-posts id)))
           (abind (name) info
             (with-who
                 (base (:title #?"Altklausuren - ${name}")
@@ -298,7 +322,12 @@
                         (:div :class "col-sm-12"
                               (card (:title name
                                      :extra-title
-                                     (goto-forum-button #?"c/${(getf (get-config :discourse) :exam-category)}/${id}"))
+                                     (htm
+                                      (goto-forum-button #?"c/${(getf (get-config :discourse) :exam-category)}/${id}")
+                                      (dolist (topic meta-posts)
+                                        (htm (button (car topic)
+                                                 (url-for :first-post
+                                                          :id (write-to-string (aget (cdr topic) :id))))))))
                                 (:table
                                     :class "striped hoverable exams"
                                     (:thead
