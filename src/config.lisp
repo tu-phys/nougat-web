@@ -15,7 +15,7 @@
       :md-files (:welcome "welcome.md")
       :prefix "[KS]"
       :discourse (:url "https://physik.protagon.space"
-                  :key "47874185494acba8d993d4dd39f2b233e71a44df90e5296e160d4818ee57aacf"
+                  :key "<KEY>"
                   :username "hiro98"
 
                   :exam-category 33
