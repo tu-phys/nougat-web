@@ -61,7 +61,9 @@
   `(with-html-output-to-string (output nil :prologue t)
      ,@body))
 
-(defun handle-discourse (call)
+(defu(defmacro with-who (&rest body)
+  `(with-html-output-to-string (output nil :prologue t)
+     ,@body))n handle-discourse (call)
   (handler-case
       (funcall call)
 
@@ -340,8 +342,11 @@
                   (when (not *whitelisted*)
                     (htm (:span :class "toast"
                                 (:center "außerhalb Uninetz → Weiterleitung auf Forum"
-                                    (:br)
-                                    (:i "Anmeldung Erforderlich")))))
+                                         (:br)
+                                         (:i "Anmeldung Erforderlich")
+                                         (:br)
+                                         (:i (:a :href "https://webvpn.zih.tu-dresden.de/"
+                                                 "WebVPN"))))))
                   (:div :class "row"
                         (:div :class "col-sm-12"
                               (card (:title name
