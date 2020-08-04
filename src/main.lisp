@@ -174,7 +174,8 @@
                      (append (lack.response:response-headers ningle:*response*)
                              (list :content-type "text/html")))
                (let* ((*whitelisted* (whitelisted?
-                                    (lack.request:request-remote-addr ningle:*request*))))
+                                      (gethash "x-real-ip"
+                                               (lack.request:request-headers ningle:*request*)))))
                  ,@body)))))
 
 (defroute :home ("/")
