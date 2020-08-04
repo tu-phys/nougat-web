@@ -18,7 +18,7 @@
       :prefix "[KS]"
       :whitelist (#?|127\.0\.0\.1| #?|141\.30\.[0-9]{1,3}\.[0-9]{1,3}|)
       :discourse (:url "https://physik.protagon.space"
-                  :key "47874185494acba8d993d4dd39f2b233e71a44df90e5296e160d4818ee57aacf"
+                  :key "<KEY>"
                   :username "hiro98"
 
                   :exam-category 33
