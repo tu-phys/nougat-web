@@ -61,9 +61,7 @@
   `(with-html-output-to-string (output nil :prologue t)
      ,@body))
 
-(defu(defmacro with-who (&rest body)
-  `(with-html-output-to-string (output nil :prologue t)
-     ,@body))n handle-discourse (call)
+(defun handle-discourse (call)
   (handler-case
       (funcall call)
 
