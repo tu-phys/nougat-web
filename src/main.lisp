@@ -44,7 +44,7 @@
                             (get-config :static-path)))
 (defvar *app* (make-instance 'nougat))
 (defvar *whitelisted* nil)
-(defconstant +ip-whitelist+ (map 'list #'ppcre:create-scanner
+(defvar +ip-whitelist+ (map 'list #'ppcre:create-scanner
                                  (get-config :whitelist)))
 
 (defun whitelisted? (ip)
