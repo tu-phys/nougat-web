@@ -43,6 +43,14 @@
                             (get-config :application-root)
                             (get-config :static-path)))
 (defvar *app* (make-instance 'nougat))
+(defvar *whitelisted* nil)
+(defconstant +whitelist+ (map 'list #'ppcre:create-scanner
+                              (get-config :whitelist)))
+
+(defun whitelisted? (ip)
+  (loop :for regex :in +whitelist+
+        :when (ppcre:scan regex ip)
+        :return t))
 
 ;;
 ;; Layouts
@@ -165,7 +173,9 @@
                (setf (lack.response:response-headers ningle:*response*)
                      (append (lack.response:response-headers ningle:*response*)
                              (list :content-type "text/html")))
-               ,@body))))
+               (let* ((*whitelisted* (whitelisted?
+                                    (lack.request:request-remote-addr ningle:*request*))))
+                 ,@body)))))
 
 (defroute :home ("/")
   (with-who
@@ -325,6 +335,11 @@
           (abind (name) info
             (with-who
                 (base (:title #?"Altklausuren - ${name}")
+                  (when (not *whitelisted*)
+                    (htm (:span :class "toast"
+                                (:center "außerhalb Uninetz → Weiterleitung auf Forum"
+                                    (:br)
+                                    (:i "Anmeldung Erforderlich")))))
                   (:div :class "row"
                         (:div :class "col-sm-12"
                               (card (:title name
@@ -357,7 +372,8 @@
                                            (:td
                                             :data-label "Download"
                                             (:a
-                                             :href link
+                                             :href (if *whitelisted*
+                                                       link #?"${(get-forum-url)}/t/${topic-id}")
                                              :class "button small download"
                                              :style "font-family: u1f400"
                                              (str "⇩"))

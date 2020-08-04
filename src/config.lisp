@@ -3,8 +3,10 @@
    :envy)
   (:export :app-config))
 (in-package :nougat-web.config)
+(named-readtables:in-readtable :interpol-syntax)
 
 (setf (config-env-var) "APP_ENV")
+
 
 (defconfig :common
     `(:application-root ,(asdf:component-pathname (asdf:find-system :nougat-web))
@@ -14,6 +16,7 @@
       :cache-token "test"
       :md-files (:welcome "welcome.md")
       :prefix "[KS]"
+      :whitelist (#?|127\.0\.0\.1| #?|141\.30\.[0-9]{1,3}\.[0-9]{1,3}|)
       :discourse (:url "https://physik.protagon.space"
                   :key "47874185494acba8d993d4dd39f2b233e71a44df90e5296e160d4818ee57aacf"
                   :username "hiro98"
