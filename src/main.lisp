@@ -46,11 +46,12 @@
 (defvar *whitelisted* nil)
 (defvar +ip-whitelist+ (map 'list #'ppcre:create-scanner
                                  (get-config :whitelist)))
+(defconstant +ip-header+ (get-config :ip-header))
 
 (defun whitelisted? (ip)
   (loop :for regex :in +ip-whitelist+
-        :when (ppcre:scan regex ip)
-        :return t))
+     :when (ppcre:scan regex ip)
+     :return t))
 
 ;;
 ;; Layouts
@@ -174,7 +175,7 @@
                      (append (lack.response:response-headers ningle:*response*)
                              (list :content-type "text/html")))
                (let* ((*whitelisted* (whitelisted?
-                                      (gethash "x-real-ip"
+                                      (gethash +ip-header+
                                                (lack.request:request-headers ningle:*request*)))))
                  ,@body)))))
 
