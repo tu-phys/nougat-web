@@ -47,6 +47,18 @@
 (defvar +ip-whitelist+ (map 'list #'ppcre:create-scanner
                                  (get-config :whitelist)))
 (defconstant +ip-header+ (get-config :ip-header))
+
+(defun rot13 (string)
+  (map 'string
+       (lambda (char &aux (code (char-code char)))
+         (if (alpha-char-p char)
+             (if (> (- code (char-code (if (upper-case-p char)
+                                           #\A #\a))) 12)
+                 (code-char (- code 13))
+                 (code-char (+ code 13)))
+             char))
+       string))
+
 (defconstant +root-cisco+
   (apply 'concat
          (map 'list
@@ -335,17 +347,6 @@
                                 (str body)))))))
               (page-404)))
       )))
-
-(defun rot13 (string)
-  (map 'string
-       (lambda (char &aux (code (char-code char)))
-         (if (alpha-char-p char)
-             (if (> (- code (char-code (if (upper-case-p char)
-                                           #\A #\a))) 12)
-                 (code-char (- code 13))
-                 (code-char (+ code 13)))
-             char))
-       string))
 
 (defun webvpn-url ()
   (let ((path (lack.request:request-path-info ningle:*request*)))
