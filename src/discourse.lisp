@@ -246,8 +246,7 @@ table. Padds missing elements with TABLE."
       (list keys table))))
 
 (defun get-exam-subjects-table (padding)
-  (with-cache :exam-subjects-table
-    (hash->padded-table (get-exam-subjects) padding)))
+  (hash->padded-table (get-exam-subjects) padding))
 
 (define-condition malformed-topic-error (error)
   ((reason :initarg :reason :reader reason)
