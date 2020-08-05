@@ -59,7 +59,7 @@
              char))
        string))
 
-(defconstant +root-cisco+
+(defvar +root-cisco+
   (apply 'concat
          (map 'list
               #'(lambda (char)
