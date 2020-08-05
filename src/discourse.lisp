@@ -115,16 +115,12 @@
           (when parent-id
             (switch (parent-id)
               ((getf (get-config :discourse) :exam-category)
-               (get-category-info id)
-               (get-exam-subjects-table)
+               (get-exam-subjects)
                (when (string= event "category_created")
                  (remhash (exam-list-url id) *cache*)
                  (get-exams id)))
               ((getf (get-config :discourse) :lab-course-category)
-               (get-lab-course-table nil))))
-          (when (and parent-id
-                   (= parent-id (getf (get-config :discourse) :exam-category)))
-            )))
+               (get-lab-course-table nil))))))
       ('("full_drop")                       ; park that option for now
         (log:info "Full cache drop.")
         (setf *cache* (make-hash-table :test 'equal)))
