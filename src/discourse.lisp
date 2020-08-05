@@ -116,7 +116,7 @@
             (switch (parent-id)
               ((getf (get-config :discourse) :exam-category)
                (get-category-info id)
-               (get-exam-subjects)
+               (get-exam-subjects-table)
                (when (string= event "category_created")
                  (remhash (exam-list-url id) *cache*)
                  (get-exams id)))
