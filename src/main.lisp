@@ -47,11 +47,19 @@
 (defvar +ip-whitelist+ (map 'list #'ppcre:create-scanner
                                  (get-config :whitelist)))
 (defconstant +ip-header+ (get-config :ip-header))
+(defconstant +root-cisco+
+  (apply 'concat
+         (map 'list
+              #'(lambda (char)
+                  (write-to-string (char-code char) :base 16))
+              (rot13 (get-config :root))))
+  "Cisco magic `encryption` (lolz) performed on the root URL of the
+  page.")
 
 (defun whitelisted? (ip)
   (loop :for regex :in +ip-whitelist+
-     :when (ppcre:scan regex ip)
-     :return t))
+        :when (ppcre:scan regex ip)
+          :return t))
 
 ;;
 ;; Layouts
@@ -328,6 +336,21 @@
               (page-404)))
       )))
 
+(defun rot13 (string)
+  (map 'string
+       (lambda (char &aux (code (char-code char)))
+         (if (alpha-char-p char)
+             (if (> (- code (char-code (if (upper-case-p char)
+                                           #\A #\a))) 12)
+                 (code-char (- code 13))
+                 (code-char (+ code 13)))
+             char))
+       string))
+
+(defun webvpn-url ()
+  (let ((path (lack.request:request-path-info ningle:*request*)))
+    #?"https://webvpn.zih.tu-dresden.de/+CSCO+1h${+root-cisco+}++${path}"))
+
 (defroute :module ("/exams/:id" params)
   (abind (id) params
     (with-handle-discourse
@@ -343,8 +366,10 @@
                                          (:br)
                                          (:i "Anmeldung Erforderlich")
                                          (:br)
-                                         (:i (:a :href "https://webvpn.zih.tu-dresden.de/"
-                                                 "WebVPN"))))))
+                                         (:i "oder direkt mit "
+                                             (:a
+                                              :href (webvpn-url)
+                                              "WebVPN"))))))
                   (:div :class "row"
                         (:div :class "col-sm-12"
                               (card (:title name

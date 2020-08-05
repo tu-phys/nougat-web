@@ -18,6 +18,7 @@
       :prefix "[KS]"
       :whitelist (#?|127\.0\.0\.1| #?|141\.30\.[0-9]{1,3}\.[0-9]{1,3}|)
       :ip-header "x-real-ip"
+      :root "https://klausurnoug.at"
       :discourse (:url "https://physik.protagon.space"
                   :key "<KEY>"
                   :username "hiro98"
