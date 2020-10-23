@@ -363,7 +363,7 @@
                 (base (:title #?"Altklausuren - ${name}")
                   (when (not *whitelisted*)
                     (htm (:span :class "toast"
-                                (:center "außerhalb Uninetz → Weiterleitung auf Forum"
+                                (:center "außerhalb Uninetz"
                                          (:br)
                                          (:i "Anmeldung Erforderlich")
                                          (:br)
