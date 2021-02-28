@@ -66,3 +66,7 @@ td {
 table.exams {
     max-height: none;
 }
+
+table.exams td {
+    text-transform: uppercase;
+}
