@@ -67,6 +67,6 @@ table.exams {
     max-height: none;
 }
 
-table.exams td {
+table.cat-table td {
     text-transform: uppercase;
 }
