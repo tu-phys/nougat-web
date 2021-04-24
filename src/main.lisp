@@ -207,12 +207,12 @@
                     (card (:title "Willkommen")
                       (str (welcome *app*)))))
         (:div :class "row"
-              (:div :class "col-md-3 col-sm-12 col-md-offset-3"
+              (:div :class "col-md-4 col-sm-12 col-md-offset-2"
                     (:a :href (url-for :lab-courses)
-                        (card (:title "Antestate" :class "selector")
-                          "Gesammelte Fragen der Antestate zu den
+                        (card (:title "Antestate und Protokolle" :class "selector")
+                          "Gesammelte Fragen der Antestate und Prokolle zu den
                                 Physik-Praktika der TUD.")))
-              (:div :class "col-md-3 col-sm-12"
+              (:div :class "col-md-4 col-sm-12"
                     (:a :href (url-for :exams)
                         (card (:title "Altklausuren" :class "selector")
                        "Alte <b>Klausuren, Skripte, Spicker</b> uvm. aus dem
@@ -255,6 +255,7 @@
                                                      (str (aget el :slug)))))
                                               (htm (:td
                                                     "&nbsp;"))))))))))))))))))
+
 (defroute :lab-course ("/lab-course/:course" params)
   (with-handle-discourse
       (let ((course (get-full-lab-course (aget params :course))))

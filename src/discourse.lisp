@@ -15,7 +15,6 @@
    :get-meta-posts
    :get-category-info
 
-   :get-lab-courses
    :get-lab-course-table
    :get-full-lab-course
 
@@ -39,8 +38,11 @@
    :tutor
    :year
    :tests
+   :protocols
    :lab-course-tests-p
+   :lab-course-protocols-p
    :aget
+   :url
    :abind
    :id
    :cat-id))
@@ -432,13 +434,24 @@ with the right prefix."
             (year fixnum)
             (body string))))
 
+(defautoclass protocol ()
+  ((:reader (year fixnum)
+            (url (or null string))
+            (body string))))
+
 (defautoclass lab-course (lab-course-rump)
   ((:reader
     (tests proper-list)
+    (protocols proper-list)
     (body string))))
 
 (defun lab-course-tests-p (lab-course)
-  (slot-boundp lab-course 'tests))
+  (and (slot-boundp lab-course 'tests)
+       (> (list-length (tests lab-course)) 0)))
+
+(defun lab-course-protocols-p (lab-course)
+  (and (slot-boundp lab-course 'protocols)
+       (> (list-length (protocols lab-course)) 0)))
 
 (defun parse-lab-course-topic (topic category)
   (abind (title id) topic
@@ -452,9 +465,10 @@ with the right prefix."
                          :category category
                          :id id :name (elt parts 1) :slug (elt parts 0))))))
 
-(defun get-lab-courses ()
-  "Retrieves a hash-table of lab-courses keyed by their superior course. "
-  (let ((courses (get-subcategories (getf *config* :lab-course-category)))
+(defun get-post-table (category)
+  "Retrieves a hash-table of lab-courses or protocols in CATEGORY
+keyed by their superior course."
+  (let ((courses (get-subcategories category))
         (lab-table (make-hash-table :test 'equal)))
     (dolist (lab courses)
       (abind (name id) lab
@@ -474,7 +488,8 @@ with the right prefix."
 
 (defun get-lab-course-table (padding)
   (with-cache :lab-course-table
-    (hash->padded-table (get-lab-courses) padding)))
+    (hash->padded-table (get-post-table (getf *config* :lab-course-category)) padding)))
+
 
 (define-condition lab-parse-error (error)
   ((raw :type string)
@@ -485,30 +500,52 @@ with the right prefix."
   (let* ((scanner (ppcre:create-scanner "^#\\s+" :multi-line-mode t))
          (split (subseq (ppcre:split scanner raw) 1)))
     (if split
-        (sort (loop :for ex :in split
-                    :collect
-
-                    (let* ((lines (str:lines ex)) ; TOTO: this can be done nicer
-                           (title (first lines))
-                           (body
-                             (ppcre:regex-replace-all "\(upload://(.*)\)"
-                                                      (str:unlines (subseq lines 1))
-                                                      (concatenate 'string (getf *config* :url) "/uploads/short-url/\\2"))))
-
-                      (multiple-value-bind (matched matches) (ppcre:scan-to-strings "(.*)\\s+\\((.*)\\)" title)
-                        (if (and matched (= 2 (length matches)))
-                            (make-instance 'lab-test :tutor (elt matches 0)
-                                                     :year (handler-case (parse-integer (elt matches 1))
-                                                             (sb-int:simple-parse-error (e)
-                                                               (declare (ignore e))
-                                                               (error 'lab-parse-error
-                                                                      :raw raw
-                                                                      :reason #?"Invalid year: ${(elt matches 1)}")))
-                                                     :body (with-output-to-string (s)
-                                                             (3bmd:parse-string-and-print-to-stream body s)))
-
-                            (error 'lab-parse-error :raw raw :reason #?"Invalid title: ${title}")))))
-              #'> :key #'year)
+        (let ((tests-and-protocols
+                (sort
+                 (loop :for ex :in split
+                       :collect
+                       (let* ((lines (str:lines ex)) ; TOTO: this can be done nicer
+                              (title (first lines))
+                              (body
+                                (ppcre:regex-replace-all "\(upload://(.*)\)"
+                                                         (str:unlines (subseq lines 1))
+                                                         (concatenate 'string (getf *config* :url) "/uploads/short-url/\\2"))))
+                         (multiple-value-bind (matched matches) (ppcre:scan-to-strings "Protokoll\\s+\\((.*)\\)" title)
+                           (if (and matched (= 1 (length matches)))
+                               (let ((body (with-output-to-string (s)
+                                             (3bmd:parse-string-and-print-to-stream body s))))
+                                 (multiple-value-bind (url-matched urls)
+                                     (ppcre:scan-to-strings "href=\"(.*)\"" body)
+                                   (format t "Protokoll")
+                                   (make-instance 'protocol
+                                                  :year (handler-case (parse-integer (elt matches 0))
+                                                          (sb-int:simple-parse-error (e)
+                                                            (declare (ignore e))
+                                                            (error 'lab-parse-error
+                                                                   :raw raw
+                                                                   :reason #?"Invalid year: ${(elt matches 1)}")))
+                                                  :url (when url-matched (elt urls 0))
+                                                  :body body)))
+                               (multiple-value-bind (matched matches) (ppcre:scan-to-strings "(.*)\\s+\\((.*)\\)" title)
+                                 (if (and matched (= 2 (length matches)))
+                                     (make-instance 'lab-test :tutor (elt matches 0)
+                                                              :year (handler-case (parse-integer (elt matches 1))
+                                                                      (sb-int:simple-parse-error (e)
+                                                                        (declare (ignore e))
+                                                                        (error 'lab-parse-error
+                                                                               :raw raw
+                                                                               :reason #?"Invalid year: ${(elt matches 1)}")))
+                                                              :body (with-output-to-string (s)
+                                                                      (3bmd:parse-string-and-print-to-stream body s)))
+                                     (error 'lab-parse-error :raw raw :reason #?"Invalid title: ${title}")))))))
+                 #'> :key #'year))
+              (tests '())
+              (protocols '()))
+          (dolist (test-or-protocol tests-and-protocols)
+            (if (typep test-or-protocol 'lab-test)
+                (push test-or-protocol tests)
+                (push test-or-protocol protocols)))
+          (values (nreverse tests) (nreverse protocols)))
         (error 'lab-parse-error :raw raw :reason #?"Invalid body: ${raw}"))))
 
 (defgeneric get-full-lab-course (lab-course &optional category)
@@ -522,11 +559,11 @@ with the right prefix."
            (first (extract-first-post topic))
            (body (get-cached ((post-url (aget first :id)) res)
                    (aget res :raw))))
-      (handler-case (let ((tests (parse-raw-lab body)))
+      (handler-case (multiple-value-bind (tests protocols) (parse-raw-lab body)
                       (change-class lab-course (find-class 'lab-course)
-                                    :tests tests))
+                                    :tests tests
+                                    :protocols protocols))
         (lab-parse-error (e)
-          (log:debug e)
           (change-class lab-course (find-class 'lab-course)
                         :body (aget first :cooked))))))
   (:method ((topic lab-course-rump) &optional category)
