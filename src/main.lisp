@@ -287,7 +287,24 @@
                                                    (:b (str #?"${(year test)}: ${(tutor test)}")))
                                            (:div (str (body test))))))))
 
-                      (str (body course)))))))))))
+                      (str (body course)))
+                  (if (lab-course-protocols-p course)
+                      (htm
+                       (:h3 "Protokolle")
+                       (:div :class "collapse"
+                             (loop :for test :in (protocols course)
+                                   :for i :from 1
+                                   :do (let ((label #?"collapse-section-p${i}"))
+                                         (htm
+                                          (:input :type "radio" :id label :aria-hidden "true" :name "accordeon")
+                                          (:label :for label :aria-hidden "true"
+                                                  (:b (str #?"${(year test)}"))
+                                                  (:a
+                                                   :href (url test)
+                                                   :class "download"
+                                                   :style "font-family: u1f400; margin-left: .5em !important;"
+                                                   (str "⇩")))
+                                          (:div (str (body test)))))))))))))))))
 
 (defroute :lab-courses ("/lab-course")
   (with-handle-discourse

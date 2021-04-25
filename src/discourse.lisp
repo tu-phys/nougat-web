@@ -350,23 +350,22 @@ download link and the rest is parsed as notes. Returns an EXAM."
 (-> get-exams ((or string fixnum)) proper-list)
 (defun get-exams (subject-id)
   "Gets and parses all the exams in a category skipping invalid ones."
-  (get-cached ((exam-list-url subject-id)
-                 res)
-    (flet ((ex-year (exam)
-             (~> (ppcre:split "/" (exam-year exam))
-                 (elt 0)
-                 (parse-integer))))
-      (let* ((topics (aget res :topic--list :topics))
-             (exams (loop :for topic :in topics
-                          :for exam = (handler-case (get-exam topic
-                                                              subject-id)
-                                        (malformed-exam-error (error)
-                                          (log:debug error (slot-value error 'reason)
-                                                     (slot-value error 'title)
-                                                     (slot-value error 'id))
-                                          nil))
-                          :when exam :collecting exam)))
-        (sort exams #'> :key #'ex-year)))))
+  (with-cache #?"exams/${subject-id}"
+   (flet ((ex-year (exam)
+            (~> (ppcre:split "/" (exam-year exam))
+                (elt 0)
+                (parse-integer))))
+     (let* ((topics (get-all-topics subject-id))
+            (exams (loop :for topic :in topics
+                         :for exam = (handler-case (get-exam topic
+                                                             subject-id)
+                                       (malformed-exam-error (error)
+                                         (log:debug error (slot-value error 'reason)
+                                                    (slot-value error 'title)
+                                                    (slot-value error 'id))
+                                         nil))
+                         :when exam :collecting exam)))
+       (sort exams #'> :key #'ex-year)))))
 
 (defun remove-prefix (string)
   "Removes the meta prefix from a string."
@@ -385,20 +384,27 @@ with the right prefix."
         (remove-prefix title)
         nil)))
 
+(defun get-all-topics (subject-id &optional (page 0))
+  (get-cached (#?"${(exam-list-url subject-id)}?page=${page}" res)
+    (let* ((topic-list (aget res :topic--list))
+           (topics (aget topic-list :topics))
+           (next (aget topic-list :more--topics--url)))
+      (if next
+          (nconc topics (get-all-topics subject-id (+ page 1)))
+          topics))))
+
 (defun get-meta-posts (subject-id)
   "Finds all posts with a title starting with ` ...`."
-  (get-cached ((exam-list-url subject-id)
-               res
-               #?"/meta/${subject-id}")
-    (let* ((topics (aget res :topic--list :topics))
-           (exams (loop :for topic :in topics
-                        :for exam = (meta-post (aget topic :title))
-                        :when exam :when (equal (aget topic :category--id)
-                                                (if (stringp subject-id)
-                                                    (parse-integer subject-id)
-                                                    subject-id))
-                          :collecting (cons exam topic))))
-      exams)))
+  (with-cache #?"/meta-posts/${subject-id}"
+   (let* ((topics (get-all-topics subject-id))
+          (exams (loop :for topic :in topics
+                       :for exam = (meta-post (aget topic :title))
+                       :when exam :when (equal (aget topic :category--id)
+                                               (if (stringp subject-id)
+                                                   (parse-integer subject-id)
+                                                   subject-id))
+                         :collecting (cons exam topic))))
+     exams)))
 
 ;;
 ;; Lab Courses
