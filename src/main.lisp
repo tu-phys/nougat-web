@@ -260,7 +260,8 @@
 
 (defroute :lab-course ("/lab-course/:course" params)
   (with-handle-discourse
-      (let ((course (get-full-lab-course (aget params :course))))
+      (let* ((course (get-full-lab-course (aget params :course)))
+            (has-protocols (lab-course-protocols-p course)))
         (with-who
             (base (:title #?"Antestate - ${(name course)}"
                    :extra-head
@@ -271,6 +272,16 @@
                      :type "text/css"   ; TODO central def
                      :rel "stylesheet"
                      :href "https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.css"))) ; TODO: reduce dublication by using clos for modules too!
+              (when (and has-protocols (not *whitelisted*))
+                    (htm (:span :class "toast"
+                                (:center "außerhalb Uninetz"
+                                         (:br)
+                                         (:i "Zum Einsehen der Protokolle ist eine Anmeldung Erforderlich")
+                                         (:br)
+                                         (:i "oder direkt mit "
+                                             (:a
+                                              :href (webvpn-url)
+                                              "WebVPN"))))))
               (:div
                :class "row"
                (:div
@@ -281,16 +292,16 @@
                   (if (lab-course-tests-p course)
                       (htm (:div :class "collapse"
                                  (loop :for test :in (tests course)
-                                    :for i :from 1
-                                    :do (let ((label #?"collapse-section${i}"))
-                                          (htm
-                                           (:input :type "radio" :id label :aria-hidden "true" :name "accordeon")
-                                           (:label :for label :aria-hidden "true"
-                                                   (:b (str #?"${(year test)}: ${(tutor test)}")))
-                                           (:div (str (body test))))))))
+                                       :for i :from 1
+                                       :do (let ((label #?"collapse-section${i}"))
+                                             (htm
+                                              (:input :type "radio" :id label :aria-hidden "true" :name "accordeon")
+                                              (:label :for label :aria-hidden "true"
+                                                      (:b (str #?"${(year test)}: ${(tutor test)}")))
+                                              (:div (str (body test))))))))
 
                       (str (body course)))
-                  (if (lab-course-protocols-p course)
+                  (if has-protocols
                       (htm
                        (:h3 "Protokolle")
                        (:div :class "collapse"
