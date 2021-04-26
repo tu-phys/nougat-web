@@ -101,6 +101,7 @@
                     ((getf (get-config :discourse) :exam-category)
                      (get-topic id)
                      (remhash (exam-list-url cat-id) *cache*)
+                     (remhash #?"exams/${cat-id}" *cache*)
                      (let ((*no-cache* nil)) (get-exams cat-id)))
                     ((getf (get-config :discourse) :lab-course-category)
                      (get-lab-course-table nil)
