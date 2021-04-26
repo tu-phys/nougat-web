@@ -523,7 +523,6 @@ keyed by their superior course."
                                              (3bmd:parse-string-and-print-to-stream body s))))
                                  (multiple-value-bind (url-matched urls)
                                      (ppcre:scan-to-strings "href=\"(.*)\"" body)
-                                   (format t "Protokoll")
                                    (make-instance 'protocol
                                                   :year (handler-case (parse-integer (elt matches 0))
                                                           (sb-int:simple-parse-error (e)
