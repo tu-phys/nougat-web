@@ -320,7 +320,9 @@
                                                    :style "font-family: u1f400; margin-left: .5em !important;"
                                                    (str "⇩")))
                                           (:div (if *whitelisted*
-                                                    (body test)
+                                                    (htm
+                                                     (str
+                                                      (body test)))
                                                     (htm
                                                      (:a :href #?"${(get-forum-url)}/t/${(aget params :course)}"
                                                          "Ausserhalb des UNI Netzes: Im Forum ansehen."))))))))))))))))))
