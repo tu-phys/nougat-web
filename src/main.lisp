@@ -38,7 +38,8 @@
     :accessor header-links)))
 
 (setf (who:html-mode) :html5)
-(log:config (get-config :log-level))
+;; (log:config (get-config :log-level))
+
 (defvar *static-directory* (merge-pathnames-as-directory
                             (get-config :application-root)
                             (get-config :static-path)))
@@ -69,6 +70,7 @@
   page.")
 
 (defun whitelisted? (ip)
+  (log:debug "Checking whitelist: " ip)
   (loop :for regex :in +ip-whitelist+
         :when (ppcre:scan regex ip)
           :return t))
@@ -300,11 +302,17 @@
                                           (:label :for label :aria-hidden "true"
                                                   (:b (str #?"${(year test)}"))
                                                   (:a
-                                                   :href (url test)
+                                                   :href (if *whitelisted*
+                                                             (url test)
+                                                             #?"${(get-forum-url)}/t/${(aget params :course)}")
                                                    :class "download"
                                                    :style "font-family: u1f400; margin-left: .5em !important;"
                                                    (str "⇩")))
-                                          (:div (str (body test)))))))))))))))))
+                                          (:div (if *whitelisted*
+                                                    (body test)
+                                                    (htm
+                                                     (:a :href #?"${(get-forum-url)}/t/${(aget params :course)}"
+                                                         "Ausserhalb des UNI Netzes: Im Forum ansehen."))))))))))))))))))
 
 (defroute :lab-courses ("/lab-course")
   (with-handle-discourse
@@ -510,7 +518,6 @@
                              path
                              nil))
                  :root *static-directory*)
-                (:backtrace)
                 *app*) (getf (app-config) :clack-config))))
 
 (defun stop ()
