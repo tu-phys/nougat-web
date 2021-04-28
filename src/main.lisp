@@ -38,7 +38,7 @@
     :accessor header-links)))
 
 (setf (who:html-mode) :html5)
-;; (log:config (get-config :log-level))
+(log:config (or :info (get-config :log-level)))
 
 (defvar *static-directory* (merge-pathnames-as-directory
                             (get-config :application-root)
@@ -261,7 +261,8 @@
 (defroute :lab-course ("/lab-course/:course" params)
   (with-handle-discourse
       (let* ((course (get-full-lab-course (aget params :course)))
-            (has-protocols (lab-course-protocols-p course)))
+             (has-tests (lab-course-tests-p course))
+             (has-protocols (lab-course-protocols-p course)))
         (with-who
             (base (:title #?"Antestate - ${(name course)}"
                    :extra-head
@@ -289,7 +290,7 @@
                 (card (:title (name course)
                        :extra-title
                        (goto-forum-button #?"/t/${(id course)}"))
-                  (if (lab-course-tests-p course)
+                  (if has-tests
                       (htm (:div :class "collapse"
                                  (loop :for test :in (tests course)
                                        :for i :from 1
@@ -300,7 +301,8 @@
                                                       (:b (str #?"${(year test)}: ${(tutor test)}")))
                                               (:div (str (body test))))))))
 
-                      (str (body course)))
+                      (if (not has-protocols)
+                          (str (body course))))
                   (if has-protocols
                       (htm
                        (:h3 "Protokolle")
