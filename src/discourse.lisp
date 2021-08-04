@@ -302,7 +302,7 @@ shape (YEAR TITLE)."
     (reduce
      #'(lambda (solutions topic)
          (multiple-value-bind (_ sol-title)
-             (ppcre:scan-to-strings "(.*Lösung.*)</h1>"
+             (ppcre:scan-to-strings ">(.*Lösung.*)</h1>"
                                     (aget topic :cooked))
            (declare (ignore _))
            (if (not (emptyp sol-title))
