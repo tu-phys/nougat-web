@@ -100,7 +100,10 @@
                   (switch (parent-id)
                     ((getf (get-config :discourse) :exam-category)
                      (get-topic id)
-                     (remhash (exam-list-url cat-id) *cache*)
+                     (loop for k being each hash-key of *cache*
+                           if (serapeum:string^= (exam-list-url cat-id) k)
+                           do
+                              (remhash k *cache*))
                      (remhash #?"exams/${cat-id}" *cache*)
                      (let ((*no-cache* nil)) (get-exams cat-id)))
                     ((getf (get-config :discourse) :lab-course-category)
@@ -345,8 +348,11 @@ download link and the rest is parsed as notes. Returns an EXAM."
                                            :id id
                                            :reason "Link not found.")))))))
 
-(defun exam-list-url (id)
-  #?"/c/${(getf *config* :exam-category)}/${id}.json")
+(defun exam-list-url (id &optional (page -1))
+  (let ((url #?"/c/${(getf *config* :exam-category)}/${id}.json"))
+    (if (>= page 0)
+        (concat url #?"?page=${page}")
+        url)))
 
 (-> get-exams ((or string fixnum)) proper-list)
 (defun get-exams (subject-id)
@@ -386,7 +392,7 @@ with the right prefix."
         nil)))
 
 (defun get-all-topics (subject-id &optional (page 0))
-  (get-cached (#?"${(exam-list-url subject-id)}?page=${page}" res)
+  (get-cached ((exam-list-url subject-id page) res)
     (let* ((topic-list (aget res :topic--list))
            (topics (aget topic-list :topics))
            (next (aget topic-list :more--topics--url)))
