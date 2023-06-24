@@ -1,5 +1,8 @@
 * Nougat-Web 
-This is the code for a webpage that fetches and parses content from the TUD Physics Forum.xbxb
+This is the code for a webpage that fetches and parses content from the TUD Physics Forum.
+
+Although the latest code commit lies quite some time in the past, the site just works (TM) and 
+I'll only touch this to fix bugs :P.
 
 ** Usage
 + to start: ~ros run nougat.ros~
