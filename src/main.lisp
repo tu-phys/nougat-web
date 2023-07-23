@@ -39,6 +39,7 @@
 
 (setf (who:html-mode) :html5)
 (log:config (or :info (get-config :log-level)))
+(setf *random-state* (make-random-state t))
 
 (defvar *static-directory* (merge-pathnames-as-directory
                             (get-config :application-root)
@@ -98,6 +99,15 @@
                              (~> (dexador.error:response-body c)
                                  (json:decode-json-from-string)
                                  (aget :errors)))))
+    (dexador.error:http-request-too-many-requests (c)
+      (declare (ignore c))
+      (handle-discourse
+       (lambda ()
+         (progn
+           (log:warn "Discourse says too many requests, slowing down...")
+           (sleep (+ (parse-integer (href-default 1 (dexador.error:response-headers c) "retry-after"))
+                     (* (get-config :max-retry-extra-delay) (/ (random 100) 100))))
+           (funcall call)))))
     (error (c)
       (discourse-500 (format nil "~A" c)))))
 

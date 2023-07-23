@@ -19,6 +19,7 @@
       :whitelist (#?|127\.0\.0\.1| #?|141\.30\.[0-9]{1,3}\.[0-9]{1,3}|)
       :ip-header "x-real-ip"
       :root "https://klausurnoug.at"
+      :max-retry-extra-delay 1
       :discourse (:url "https://physik.protagon.space"
                   :key "<KEY>"
                   :username "hiro98"
