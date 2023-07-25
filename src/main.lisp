@@ -194,6 +194,18 @@
   (let ((forum-url (getf (get-config :discourse) :url)))
     `(button ,text #?"${,forum-url}/${,link}")))
 
+(defmacro uninet-toast ()
+  `(htm
+    (:span :class "toast"
+           (:center "Du befindest dich außerhalb des Uninetzes."
+                    (:br)
+                    (:i "Zum Einsehen der Protokolle ist eine Anmeldung Erforderlich.")
+                    (:br)
+                    (:i "Alternativ kannst du auch die "
+                        (:a
+                         :href (webvpn-url)
+                         "WebVPN")
+                        "nutzen.")))))
 ;;
 ;; Routes
 ;;
@@ -395,19 +407,6 @@
 (defun webvpn-url ()
   (let ((path (lack.request:request-path-info ningle:*request*)))
     #?"https://webvpn.zih.tu-dresden.de/+CSCO+1h${+root-cisco+}++${path}"))
-
-(defmacro uninet-toast ()
-  `(htm
-    (:span :class "toast"
-           (:center "Du befindest dich außerhalb des Uninetzes."
-                    (:br)
-                    (:i "Zum Einsehen der Protokolle ist eine Anmeldung Erforderlich.")
-                    (:br)
-                    (:i "Alternativ kannst du auch die "
-                        (:a
-                         :href (webvpn-url)
-                         "WebVPN")
-                        "nutzen.")))))
 
 (defroute :module ("/exams/:id" params)
   (abind (id) params
