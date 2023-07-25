@@ -285,15 +285,7 @@
                      :rel "stylesheet"
                      :href "https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.css"))) ; TODO: reduce dublication by using clos for modules too!
               (when (and has-protocols (not *whitelisted*))
-                    (htm (:span :class "toast"
-                                (:center "außerhalb Uninetz"
-                                         (:br)
-                                         (:i "Zum Einsehen der Protokolle ist eine Anmeldung Erforderlich")
-                                         (:br)
-                                         (:i "oder direkt mit "
-                                             (:a
-                                              :href (webvpn-url)
-                                              "WebVPN"))))))
+                    (uninet-toast))
               (:div
                :class "row"
                (:div
@@ -404,6 +396,19 @@
   (let ((path (lack.request:request-path-info ningle:*request*)))
     #?"https://webvpn.zih.tu-dresden.de/+CSCO+1h${+root-cisco+}++${path}"))
 
+(defmacro uninet-toast ()
+  `(htm
+    (:span :class "toast"
+           (:center "Du befindest dich außerhalb des Uninetzes."
+                    (:br)
+                    (:i "Zum Einsehen der Protokolle ist eine Anmeldung Erforderlich.")
+                    (:br)
+                    (:i "Alternativ kannst du auch die "
+                        (:a
+                         :href (webvpn-url)
+                         "WebVPN")
+                        "nutzen.")))))
+
 (defroute :module ("/exams/:id" params)
   (abind (id) params
     (with-handle-discourse
@@ -414,15 +419,7 @@
             (with-who
                 (base (:title #?"Altklausuren - ${name}")
                   (when (not *whitelisted*)
-                    (htm (:span :class "toast"
-                                (:center "außerhalb Uninetz"
-                                         (:br)
-                                         (:i "Anmeldung Erforderlich")
-                                         (:br)
-                                         (:i "oder direkt mit "
-                                             (:a
-                                              :href (webvpn-url)
-                                              "WebVPN"))))))
+                    (uninet-toast))
                   (:div :class "row"
                         (:div :class "col-sm-12"
                               (card (:title name
@@ -553,3 +550,7 @@
 
 
 ;; TODO: Rate Limiter
+
+;; Local Variables:
+;; jinx-languages: "de_DE"
+;; End:
