@@ -203,8 +203,8 @@
                     (:br)
                     (:i "Alternativ kannst du auch die "
                         (:a
-                         :href (webvpn-url)
-                         "WebVPN")
+                         :href "https://faq.tickets.tu-dresden.de/otrs/public.pl?Action=PublicFAQSearch;Subaction=Search;Keyword=OpenVPN"
+                         "openVPN")
                         "nutzen.")))))
 ;;
 ;; Routes
@@ -404,9 +404,6 @@
               (page-404)))
       )))
 
-(defun webvpn-url ()
-  (let ((path (lack.request:request-path-info ningle:*request*)))
-    #?"https://webvpn.zih.tu-dresden.de/+CSCO+1h${+root-cisco+}++${path}"))
 
 (defroute :module ("/exams/:id" params)
   (abind (id) params
