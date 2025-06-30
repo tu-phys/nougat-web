@@ -5,10 +5,12 @@ Although the latest code commit lies quite some time in the past, the site just 
 I'll only touch this to fix bugs :P.
 
 ** Usage
-+ to start: ~ros run nougat.ros~
-+ configuration in =src/config=
++ to start: ~CONFIG=config.lisp qlot exec ros nougat.ros~
++ example configuration in =config-example.lisp=
+  
 ** Installation
 + Run `qlot install` and that should be it.
+  
 ** Author
 
 + Valentin Boettcher (hiro@protagon.space)

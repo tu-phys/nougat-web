@@ -1,28 +1,12 @@
-#!/bin/sh
 #|-*- mode:lisp -*-|#
 #|
 exec ros -Q -- $0 "$@"
 |#
-
 (declaim (optimize (speed 3) (space 0) (debug 0)))
 (push #p"./" asdf:*central-registry*)
-(ql:quickload :nougat-web)
+(asdf:load-system :nougat-web)
 (use-package :nougat-web)
 
 (defun main (&rest argv)
   (declare (ignore argv))
-  (start)
-  (handler-case (bt:join-thread (find-if (lambda (th)
-                                           (search "woo" (bt:thread-name th)))
-                                         (bt:all-threads)))
-    ;; Catch a user's C-c
-    (#+sbcl sb-sys:interactive-interrupt
-     #+ccl  ccl:interrupt-signal-condition
-     #+clisp system::simple-interrupt-condition
-     #+ecl ext:interactive-interrupt
-     #+allegro excl:interrupt-signal
-     () (progn
-          (format *error-output* "Aborting.~&")
-          (stop)
-          (uiop:quit)))
-    (error (c) (format t "Woops, an unknown error occured:~&~a~&" c))))
+  (nougat-web:main))

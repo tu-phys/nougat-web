@@ -1,16 +1,17 @@
 (defpackage :nougat-web.config
             (:use :cl
                   :envy)
-            (:export :app-config))
+            (:export :app-config :*user-config*))
 (in-package :nougat-web.config)
 (named-readtables:in-readtable :interpol-syntax)
 
+(defparameter *user-config* '())
 (setf (config-env-var) "APP_ENV")
 
 
 (defconfig :common
            `(:application-root ,(asdf:component-pathname (asdf:find-system :nougat-web))
-                               :clack-config (:port 8080 :server :woo)
+                               :clack-config (:port 8081 :server :woo)
                                :static-path "static/"
                                :markdown-path "md/"
                                :cache-token "test"
@@ -20,11 +21,14 @@
                                :ip-header "x-real-ip"
                                :root "https://klausurnoug.at"
                                :max-retry-extra-delay 1
-                               :discourse (:url "https://physik.protagon.space"
-                                                :key "<KEY>"
+                               :cache-timeout ,sb-ext:double-float-positive-infinity
+                               :discourse (:url ""
+                                                :key ""
                                                 :username "hiro98"
                                                 :exam-category 33
-                                                :lab-course-category 35)))
+                                                :lab-course-category 35
+                                                )))
+
 
 (defconfig |development|
            '(:log-level :debug
@@ -32,11 +36,10 @@
 
 (defconfig |production|
            `(:log-level :info
-                        :clack-config (:port 8081 :server woo)
                         :cache-timeout ,sb-ext:double-float-positive-infinity))
 
 (defun app-config ()
-  (envy:config #.(package-name *package*)))
+  `(,@*user-config* ,@(envy:config #.(package-name *package*))))
 
 (defun get-config (key)
-  (getf (envy:config #.(package-name *package*)) key))
+  (getf (app-config) key))
