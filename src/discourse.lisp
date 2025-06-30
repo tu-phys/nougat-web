@@ -45,16 +45,12 @@
              :url
              :abind
              :id
-             :cat-id
-             :*config*
-             :*cache-timeout*))
+             :cat-id))
 
 (in-package :nougat-web.discourse)
 (named-readtables:in-readtable :interpol-syntax)
 
 (defvar *cache* (make-hash-table :test 'equal))
-(defvar *cache-timeout*)
-(defvar *config*)
 (defvar *no-cache* nil)
 
 
@@ -146,9 +142,9 @@ result of BODY."
        (with-cache ,(if key key pathsym)
                    (with-input-from-string
                     (,stream
-                     (dex:get (concatenate 'string (getf *config* :url) ,pathsym)
-                              :headers (list (cons "Api-Key" (getf *config* :key))
-                                             (cons "Api-Username" (getf *config* :username)))))
+                     (dex:get (concatenate 'string (getf (get-config :discourse) :url) ,pathsym)
+                              :headers (list (cons "Api-Key" (getf (get-config :discourse) :key))
+                                             (cons "Api-Username" (getf (get-config :discourse) :username)))))
                     (let ((,result-var (json:decode-json ,stream)))
                       ,@body))))))
 
@@ -158,7 +154,7 @@ result of BODY."
   (let ((test (gensym))
         (cached (gensym)))
     `(let ((,cached (gethash ,key *cache*)))
-       (if (and (not *no-cache*) ,cached ;; (< (get-universal-time) (+ *cache-timeout* (car ,cached)))
+       (if (and (not *no-cache*) ,cached (< (get-universal-time) (+ (get-config :cache-timeout) (car ,cached)))
                 )
            (progn
              (log:debug "Loading cached: ~A" ,key)
@@ -226,7 +222,7 @@ Takes DESC like ~key: value; key1: value and returns a dictionary."
   "Fetches the Modules which have exams available."
   (with-cache :exam-subjects
               (let* ((categories
-                      (get-subcategories (getf *config* :exam-category)))
+                      (get-subcategories (getf (get-config :discourse) :exam-category)))
                      (subjects (loop for cat-data in categories
                                      for cat = (get-category-info cat-data)
                                      when cat collecting cat))
@@ -355,7 +351,7 @@ download link and the rest is parsed as notes. Returns an EXAM."
                                                              :reason "Link not found.")))))))
 
 (defun exam-list-url (id &optional (page -1))
-  (let ((url #?"/c/${(getf *config* :exam-category)}/${id}.json"))
+  (let ((url #?"/c/${(getf (get-config :discourse) :exam-category)}/${id}.json"))
     (if (>= page 0)
         (concat url #?"?page=${page}")
       url)))
@@ -387,7 +383,7 @@ download link and the rest is parsed as notes. Returns an EXAM."
 (defun filter-body-links (body)
   "Replace relative links to /uploads/ etc. with absolute links to the forum."
   (ppcre:regex-replace-all "href=\"/" body
-                           #?"href=\"${(getf *config* :url)}/"))
+                           #?"href=\"${(getf (get-config :discourse) :url)}/"))
 
 (defun meta-post (title)
   "Returns the title of a meta post or nil, if the post doesnt start
@@ -424,7 +420,7 @@ with the right prefix."
 ;;
 
 (defun lab-list-url (id)
-  #?"/c/${(getf *config* :lab-course-category)}/${id}.json")
+  #?"/c/${(getf (get-config :discourse) :lab-course-category)}/${id}.json")
 
 (eval-always
  (defun make-auto-slot (definiton accessor)
@@ -507,7 +503,7 @@ keyed by their superior course."
 
 (defun get-lab-course-table (padding)
   (with-cache :lab-course-table
-              (hash->padded-table (get-post-table (getf *config* :lab-course-category)) padding)))
+              (hash->padded-table (get-post-table (getf (get-config :discourse) :lab-course-category)) padding)))
 
 
 (define-condition lab-parse-error (error)
@@ -528,7 +524,7 @@ keyed by their superior course."
                              (body
                               (ppcre:regex-replace-all "\(upload://(.*)\)"
                                                        (str:unlines (subseq lines 1))
-                                                       (concatenate 'string (getf *config* :url) "/uploads/short-url/\\2"))))
+                                                       (concatenate 'string (getf (get-config :discourse) :url) "/uploads/short-url/\\2"))))
                         (multiple-value-bind (matched matches) (ppcre:scan-to-strings "Protokoll\\s+\\((.*)\\)" title)
                                              (if (and matched (= 1 (length matches)))
                                                  (let ((body (with-output-to-string (s)

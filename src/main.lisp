@@ -28,7 +28,7 @@
 (defvar *whitelisted* nil)
 (defvar +ip-whitelist+ (map 'list #'ppcre:create-scanner
                             (get-config :whitelist)))
-(defconstant +ip-header+ (get-config :ip-header))
+(defvar +ip-header+ (get-config :ip-header))
 
 (defun from-markdown-file (id)
   (let ((path (fad:merge-pathnames-as-file *static-directory*
@@ -37,17 +37,19 @@
     (with-output-to-string (s)
                            (3bmd:parse-and-print-to-stream path s))))
 
+(defun make-header-links ()
+  `((,(getf (get-config :discourse) :url) . "Forum")
+    ("https://github.com/tu-phys/nougat-web" . "Source")))
+
+(defvar *header-links* (make-header-links))
+
 (defclass nougat (ningle:app)
   ((welcome-text
     :initform (from-markdown-file :welcome)
     :accessor welcome)
    (stylesheets
     :initform '("mini.css" "main.css")
-    :accessor stylesheets)
-   (header-links
-    :initform `((,(getf (get-config :discourse) :url) . "Forum")
-                ("https://github.com/tu-phys/nougat-web" . "Source"))
-    :accessor header-links)))
+    :accessor stylesheets)))
 
 (defvar *app* (make-instance 'nougat))
 
@@ -136,7 +138,7 @@
                (:div :class "col-sm-12 col-md-12 col-lg-10 col-lg-offset-2"
                      (:a :href (url-for :home) :class "logo"
                          (:img :src "/images/logo.svg"))
-                     (loop for link in (concatenate 'list ,header-links (header-links *app*))
+                     (loop for link in (concatenate 'list ,header-links *header-links*)
                            collect (htm (:a :class "button" :href (car link)
                                             (str (cdr link)))))
                      (dolist (topic (get-meta-posts (getf (get-config :discourse) :exam-category)))
@@ -523,9 +525,14 @@
 
 (defvar *handle*)
 (defun start ()
-  (setf nougat-web.discourse:*cache-timeout*  ;; (get-config :cache-timeout)
-        10000)
-  (setf nougat-web.discourse:*config* (get-config :discourse))
+  (setf *static-directory* (merge-pathnames-as-directory
+                            (get-config :application-root)
+                            (get-config :static-path)))
+  (setf +ip-whitelist+ (map 'list #'ppcre:create-scanner
+                            (get-config :whitelist)))
+  (setf +ip-header+ (get-config :ip-header))
+  (log:config (or :info (get-config :log-level)))
+  (setf *random-state* (make-random-state t))
 
   (setf *handle*
         (apply #'clack:clackup
