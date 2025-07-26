@@ -75,9 +75,10 @@ let
 in
 pkg.overrideAttrs (o: {
   buildScript = pkgs.writeText "build-nougat-web" ''
-          (load "${o.asdfFasl}/asdf.${o.faslExt}")
+    (declaim (optimize (speed 3) (space 0) (debug 0)))
+    (load "${o.asdfFasl}/asdf.${o.faslExt}")
+
     (in-package :cl)
-       (declaim (optimize (speed 3) (space 0) (debug 0)))
        (asdf:load-system :nougat-web)
        (use-package :nougat-web)
 
