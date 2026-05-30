@@ -7,3 +7,5 @@
 *~
 .#*
 .qlot/
+/.direnv/
+/config.lisp
