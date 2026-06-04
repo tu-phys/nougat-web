@@ -189,8 +189,7 @@
         (str ,text))))
 
 (defmacro goto-forum-button (link &optional (text "Im Forum ansehen..."))
-  (let ((forum-url (getf (get-config :discourse) :url)))
-    `(button ,text #?"${,forum-url}/${,link}")))
+  `(button ,text #?"${(get-forum-url)}/${,link}"))
 
 (defmacro uninet-toast ()
   `(htm
